@@ -3834,8 +3834,8 @@ function get_interfaces_info($include_unlinked = false)
     foreach ($interfaces as $ifdescr => $interface) {
         $interfaces[$ifdescr]['if'] = get_real_interface($ifdescr);
         $interfaces[$ifdescr]['ifv6'] = get_real_interface($ifdescr, 'inet6');
-        $known_interfaces[] = $interface['if'] ?? '';
-        $known_interfaces[] = $interface['ifv6'] ?? '';
+        $known_interfaces[] = $interface['if'];
+        $known_interfaces[] = $interface['ifv6'];
     }
 
     if ($include_unlinked) {

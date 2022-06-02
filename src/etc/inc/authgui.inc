@@ -359,7 +359,6 @@ function display_login_form($Login_Error)
      * someone port-forwards WebGUI access from WAN to an internal IP on the
      * router.
      */
-    $http_host = $_SERVER['SERVER_NAME'];
     $local_ip = isAuthLocalIP($http_host);
 
     if (isset($config['openvpn']['openvpn-server'])) {

@@ -142,7 +142,7 @@ $a_cert = &config_read_array('cert');
 $a_crl = &config_read_array('crl');
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    if (isset($_GET['id']) && isset($a_ca[$_GET['id']])) {
+    if (isset($a_ca[$_GET['id']])) {
         $id = $_GET['id'];
     }
 
@@ -613,10 +613,10 @@ include("head.inc");
                   <td><i class="fa fa-info-circle text-muted"></i> <?=gettext("Key Type");?></td>
                   <td style="width:78%">
                     <select name='keytype' id='keytype' class="selectpicker">
-                  <option value="RSA" <?=$pconfig['keytype'] ?? null == "RSA" ? "selected=\"selected\"" : "";?>>
+                  <option value="RSA" <?=$pconfig['keytype'] == "RSA" ? "selected=\"selected\"" : "";?>>
                     <?=gettext("RSA");?>
                   </option>
-                  <option value="Elliptic Curve" <?=$pconfig['keytype'] ?? null == "Elliptic Curve" ? "selected=\"selected\"" : "";?>>
+                  <option value="Elliptic Curve" <?=$pconfig['keytype'] == "Elliptic Curve" ? "selected=\"selected\"" : "";?>>
                     <?=gettext("Elliptic Curve");?>
                   </option>
                     </select>
@@ -797,7 +797,7 @@ include("head.inc");
               $certcount = 0;
 
               foreach ($a_cert as $cert) {
-                  if (isset($cert['caref']) && $cert['caref'] == $ca['refid']) {
+                  if ($cert['caref'] == $ca['refid']) {
                       $certcount++;
                   }
               }

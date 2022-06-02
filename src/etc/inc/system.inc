@@ -386,8 +386,8 @@ function get_nameservers($interface = null, $with_gateway = false)
 
     for ($dnscounter = 1; $dnscounter < 9; $dnscounter++) {
         /* inspect static servers and optional gateway assignment */
-        $dns = $syscfg['dnsserver'][$dnscounter - 1] ?? null;
-        if (isset($dns) || !is_ipaddr($dns)) {
+        $dns = $syscfg['dnsserver'][$dnscounter - 1];
+        if (empty($dns) || !is_ipaddr($dns)) {
             continue;
         }
 

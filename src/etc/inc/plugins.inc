@@ -305,8 +305,7 @@ function plugins_run($hook, $verbose = false, $args = array())
                      * given by the plugin, which allows to securely
                      * pull more info from the configure call spot.
                      */
-                    $signature = explode(':', $task);
-                    list($argf, $argc) = [$signature[0], $signature[1] ?? null];
+                    list($argf, $argc) = explode(':', $task);
                     if (empty($argc) || !is_numeric($argc)) {
                         $argc = 1;
                     }

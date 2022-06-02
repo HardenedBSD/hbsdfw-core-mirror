@@ -87,7 +87,6 @@ $has_crashed = false;
 
 $pconfig = array();
 $pconfig['Email'] = isset($config['system']['contact_email']) ? $config['system']['contact_email'] : '';
-$pconfig['Desc'] = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $pconfig = $_POST;

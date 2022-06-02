@@ -34,15 +34,21 @@ require_once("guiconfig.inc");
 $a_group = &config_read_array('system', 'group');
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $id = isset($_GET['groupid']) && isset($a_group[$_GET['groupid']]) ? $_GET['groupid'] : null;
-    $act = isset($_GET['act']) && ($_GET['act'] == 'edit' || $_GET['act'] == 'new') ? $_GET['act']: null;
+    if (isset($a_group[$_GET['groupid']])) {
+        $id = $_GET['groupid'];
+    }
+    if (isset($_GET['act']) && ($_GET['act'] == 'edit' || $_GET['act'] == 'new')) {
+        $act = $_GET['act'];
+    } else {
+        $act = null;
+    }
     $pconfig = array();
     if ($act == "edit" && isset($id)) {
         // read config
-        $pconfig['name'] = $a_group[$id]['name'] ?? null;
-        $pconfig['gid'] = $a_group[$id]['gid'] ?? null;
-        $pconfig['scope'] = $a_group[$id]['scope'] ?? null;
-        $pconfig['description'] = $a_group[$id]['description'] ?? null;
+        $pconfig['name'] = $a_group[$id]['name'];
+        $pconfig['gid'] = $a_group[$id]['gid'];
+        $pconfig['scope'] = $a_group[$id]['scope'];
+        $pconfig['description'] = $a_group[$id]['description'];
         $pconfig['members'] = isset($a_group[$id]['member']) ? $a_group[$id]['member'] : array();
         $pconfig['priv'] = isset($a_group[$id]['priv']) ? $a_group[$id]['priv'] : array();
     } elseif ($act != null) {
@@ -55,7 +61,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $pconfig['priv'] = array();
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id = isset($_POST['groupid']) && isset($a_group[$_POST['groupid']]) ? $_POST['groupid'] : null;
+    if (isset($a_group[$_POST['groupid']])) {
+        $id = $_POST['groupid'];
+    }
     $pconfig = $_POST;
     $input_errors = array();
     $act = (isset($pconfig['act']) ? $pconfig['act'] : '');
@@ -140,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                     the case, it should be safe to drop the block below and let configd handle it.
             */
 
-            if (isset($group['member']) && is_array($group['member'])) {
+            if (is_array($group['member'])) {
                 foreach ($a_user as & $user) {
                     if (in_array($user['uid'], $group['member'])) {
                         local_user_set($user);
@@ -284,7 +292,7 @@ $( document ).ready(function() {
                           <select size="10" name="notmembers[]" id="notmembers" onchange="clear_selected('members')" multiple="multiple">
 <?php
                           foreach ($config['system']['user'] as $user) :
-                              if (isset($pconfig['members']) && is_array($pconfig['members']) && in_array($user['uid'], $pconfig['members'])) {
+                              if (is_array($pconfig['members']) && in_array($user['uid'], $pconfig['members'])) {
                                   continue;
                               }
 ?>
@@ -309,7 +317,7 @@ $( document ).ready(function() {
                           <select size="10" name="members[]" id="members" onchange="clear_selected('notmembers')" multiple="multiple">
 <?php
                           foreach ($config['system']['user'] as $user) :
-                              if (isset($pconfig['members']) && !(is_array($pconfig['members']) && in_array($user['uid'], $pconfig['members']))) {
+                              if (!(is_array($pconfig['members']) && in_array($user['uid'], $pconfig['members']))) {
                                   continue;
                               }
 ?>
@@ -428,7 +436,7 @@ $( document ).ready(function() {
                        class="btn btn-default btn-xs" data-toggle="tooltip" title="<?= html_safe(gettext('Edit')) ?>">
                         <span class="fa fa-pencil fa-fw"></span>
                     </a>
-<?php if ($group['scope'] ?? null != 'system'): ?>
+<?php if ($group['scope'] != 'system'): ?>
                     <button type="button" class="btn btn-default btn-xs act-del-group"
                         data-groupname="<?=$group['name'];?>"
                         data-groupid="<?=$i?>" title="<?= html_safe(gettext('Delete')) ?>" data-toggle="tooltip">

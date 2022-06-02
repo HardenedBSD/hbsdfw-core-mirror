@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         if ($pconfig['input_type'] == 'user' && isset($config['system']['user'][$pconfig['id']]['name'])) {
             $userid = $_POST['id'];
             $a_user = &config_read_array('system', 'user', $userid);
-            $a_user['priv'] = is_array($pconfig['sysprivs'] ?? null) ? $pconfig['sysprivs'] : array();
+            $a_user['priv'] = is_array($pconfig['sysprivs']) ? $pconfig['sysprivs'] : array();
             $a_user['priv'] = sort_user_privs($a_user['priv']);
             local_user_set($a_user);
             $retval = write_config();
