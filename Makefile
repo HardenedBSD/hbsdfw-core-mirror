@@ -28,11 +28,11 @@ all:
 
 .include "Mk/defaults.mk"
 
-CORE_ABI?=	22.1
+CORE_ABI?=	1.0
 CORE_MESSAGE?=	Carry on my wayward son
-CORE_NAME?=	opnsense-devel
-CORE_NICKNAME?=	Not Yet
-CORE_TYPE?=	development
+CORE_NAME?=	hbsdfw
+CORE_NICKNAME?=	Sensible Hardening
+CORE_TYPE?=	production
 
 .for REPLACEMENT in ABI PHP PYTHON
 . if empty(CORE_${REPLACEMENT})
@@ -116,18 +116,18 @@ CORE_REPOSITORY?=	unsupported/${CORE_FLAVOUR:tl}
 .endif
 
 CORE_COMMENT?=		${CORE_PRODUCT} ${CORE_TYPE} release
-CORE_MAINTAINER?=	project@opnsense.org
-CORE_ORIGIN?=		opnsense/${CORE_NAME}
-CORE_PACKAGESITE?=	https://pkg.opnsense.org
-CORE_PRODUCT?=		OPNsense
-CORE_WWW?=		https://opnsense.org/
+CORE_MAINTAINER?=	shawn.webb@hardenedbsd.org
+CORE_ORIGIN?=		hardenedbsd/${CORE_NAME}
+CORE_PACKAGESITE?=	https://pkg.hardenedbsd.org/hbsdfw
+CORE_PRODUCT?=		hbsdfw
+CORE_WWW?=		https://hardenedbsd.org/
 
 CORE_COPYRIGHT_HOLDER?=	Deciso B.V.
 CORE_COPYRIGHT_WWW?=	https://www.deciso.com/
 CORE_COPYRIGHT_YEARS?=	2014-2022
 
 CORE_DEPENDS_amd64?=	beep \
-			suricata-devel
+			suricata
 
 # transition helpers for PHP 8/Phalcon 5 migration
 CORE_DEPENDS_PHP74=	php74-json php74-openssl php74-phalcon
