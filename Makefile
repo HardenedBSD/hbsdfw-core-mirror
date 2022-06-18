@@ -30,9 +30,11 @@ all:
 
 CORE_ABI?=	1.0
 CORE_MESSAGE?=	Carry on my wayward son
+CORE_NICKNAME?=	A sense of freedom
 CORE_NAME?=	hbsdfw
-CORE_NICKNAME?=	Sensible Hardening
 CORE_TYPE?=	production
+CORE_PHP?= 74
+CORE_PYTHON?= 38
 
 .for REPLACEMENT in ABI PHP PYTHON
 . if empty(CORE_${REPLACEMENT})
@@ -42,56 +44,12 @@ CORE_MAKE+=	CORE_${REPLACEMENT}=${CORE_${REPLACEMENT}}
 .endfor
 
 _CORE_NEXT=	${CORE_ABI:C/\./ /}
-.if ${_CORE_NEXT:[2]} == 7 # community
 CORE_NEXT!=	expr ${_CORE_NEXT:[1]} + 1
-CORE_NEXT:=	${CORE_NEXT}.1
-.elif ${_CORE_NEXT:[2]} == 10 # business
-CORE_NEXT!=	expr ${_CORE_NEXT:[1]} + 1
-CORE_NEXT:=	${CORE_NEXT}.4
-.elif ${_CORE_NEXT:[2]} == 1 # community
-CORE_NEXT=	${_CORE_NEXT:[1]}
-CORE_NEXT:=	${CORE_NEXT}.7
-.elif ${_CORE_NEXT:[2]} == 4 # business
-CORE_NEXT=	${_CORE_NEXT:[1]}
-CORE_NEXT:=	${CORE_NEXT}.10
-.else
-.error Unsupported minor version for CORE_ABI=${CORE_ABI}
-.endif
-
-.if exists(${GIT}) && exists(${GITVERSION}) && exists(${.CURDIR}/.git)
-. if ${CORE_TYPE:M[Dd][Ee][Vv]*}
-_NEXTBETA!=	${GIT} tag -l ${CORE_NEXT}.b
-.  if !empty(_NEXTBETA)
-_NEXTMATCH=	--match=${CORE_NEXT}.b
-.  else
-_NEXTALPHA!=	${GIT} tag -l ${CORE_NEXT}.a
-.   if !empty(_NEXTALPHA)
-_NEXTMATCH=	--match=${CORE_NEXT}.a
-.   else
-_NEXTDEVEL!=	${GIT} tag -l ${CORE_ABI}\*
-.    if !empty(_NEXTDEVEL)
-_NEXTMATCH=	--match=${CORE_ABI}\*
-.    endif
-.   endif
-.  endif
-. elif ${CORE_TYPE:M[Bb][Uu][Ss]*}
-_NEXTMATCH=	'' # XXX verbatim match for now
-. else
-_NEXTSTABLE!=	${GIT} tag -l ${CORE_ABI}\*
-.  if !empty(_NEXTSTABLE)
-_NEXTMATCH=	--match=${CORE_ABI}\*
-.  endif
-. endif
-. if empty(_NEXTMATCH)
-. error Did not find appropriate tag for CORE_ABI=${CORE_ABI}
-. endif
-CORE_COMMIT!=	${GITVERSION} ${_NEXTMATCH}
-.endif
 
 CORE_COMMIT?=	unknown 0 undefined
-CORE_VERSION?=	${CORE_COMMIT:[1]}
-CORE_REVISION?=	${CORE_COMMIT:[2]}
-CORE_HASH?=	${CORE_COMMIT:[3]}
+CORE_VERSION?=	1.0
+CORE_REVISION?=	1.0
+CORE_HASH?=	unknown
 
 CORE_DEVEL?=	master
 CORE_STABLE?=	stable/${CORE_ABI}
@@ -122,12 +80,17 @@ CORE_PACKAGESITE?=	https://pkg.hardenedbsd.org/hbsdfw
 CORE_PRODUCT?=		hbsdfw
 CORE_WWW?=		https://hardenedbsd.org/
 
+CORE_DEPENDS_amd64?=	beep
+
+HBSDFW_DEPENDS?=	\
+			suricata \
+			zsh
+
 CORE_COPYRIGHT_HOLDER?=	Deciso B.V.
 CORE_COPYRIGHT_WWW?=	https://www.deciso.com/
 CORE_COPYRIGHT_YEARS?=	2014-2022
 
-CORE_DEPENDS_amd64?=	beep \
-			suricata
+CORE_DEPENDS_amd64?=	beep
 
 # transition helpers for PHP 8/Phalcon 5 migration
 CORE_DEPENDS_PHP74=	php74-json php74-openssl php74-phalcon
@@ -140,24 +103,29 @@ CORE_DEPENDS?=		ca_root_nss \
 			dhcpleases \
 			dnsmasq \
 			dpinger \
-			expiretable \
+			easy-rsa \
 			filterlog \
+			git \
 			ifinfo \
 			iftop \
+			flashrom \
 			flock \
 			flowd \
 			hostapd \
 			isc-dhcp44-relay \
 			isc-dhcp44-server \
+			jq \
+			libopenc2 \
 			lighttpd \
 			monit \
 			mpd5 \
+			nmap \
 			ntp \
 			openssh-portable \
 			openvpn \
-			opnsense-installer \
-			opnsense-lang \
-			opnsense-update \
+			installer \
+			lang \
+			update \
 			pam_opnsense \
 			pftop \
 			php${CORE_PHP}-ctype \
@@ -187,14 +155,18 @@ CORE_DEPENDS?=		ca_root_nss \
 			radvd \
 			rrdtool \
 			samplicator \
+			smartmontools \
 			squid \
 			strongswan \
 			sudo \
 			syslog-ng \
 			unbound \
+			vim \
+			vnstat \
 			wpa_supplicant \
 			zip \
-			${CORE_DEPENDS_${CORE_ARCH}}
+			${CORE_DEPENDS_${CORE_ARCH}} \
+			${HBSDFW_DEPENDS}
 
 WRKDIR?=${.CURDIR}/work
 WRKSRC?=${WRKDIR}/src
