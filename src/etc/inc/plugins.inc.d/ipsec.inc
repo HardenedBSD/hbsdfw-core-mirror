@@ -356,7 +356,11 @@ function ipsec_get_phase1_src(&$ph1ent)
     } else {
         $if = "wan";
     }
-    if ($ph1ent['protocol'] == "inet6") {
+    if ($ph1ent['protocol'] == "inet46") {
+        $ipv4 = get_interface_ip($if);
+        $ipv6 = get_interface_ipv6($if);
+        return $ipv4 ? $ipv4 . ($ipv6 ? ',' . $ipv6 : '') : $ipv6;
+    } elseif ($ph1ent['protocol'] == "inet6") {
         return get_interface_ipv6($if);
     } else {
         return get_interface_ip($if);
@@ -429,8 +433,7 @@ function ipsec_parse_phase2($ikeid)
                 ) {
                     $result['left_override'] = "%any";
                 } else {
-                    $tmpsubnet = ipsec_get_phase1_src($ph1ent);
-                    $result['leftsubnets'][] = $tmpsubnet;
+                    $result['leftsubnets'][] = ipsec_get_phase1_src($ph1ent);
                 }
                 if (!isset($ph1ent['mobile'])) {
                     $result['rightsubnets'][] = $ph1ent['remote-gateway'];

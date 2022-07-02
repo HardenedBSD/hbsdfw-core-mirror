@@ -152,22 +152,6 @@ function dhcpd_services()
     return $services;
 }
 
-function dhcpd_get_pppoes_child_interfaces($ifpattern)
-{
-    $if_arr = array();
-    if ($ifpattern == "") {
-        return;
-    }
-
-    exec("ifconfig", $out, $ret);
-    foreach ($out as $line) {
-        if (preg_match("/^({$ifpattern}[0-9]+):/i", $line, $match)) {
-            $if_arr[] = $match[1];
-        }
-    }
-    return $if_arr;
-}
-
 function dhcpd_radvd_configure($verbose = false, $blacklist = array())
 {
     global $config;
@@ -633,11 +617,11 @@ EOD;
      * to setup failover peer "bleh" entries
      */
     foreach ($config['dhcpd'] as $dhcpif => $dhcpifconf) {
+        /* certainly odd but documented and side effect populates ARP table */
+        interfaces_staticarp_configure($dhcpif, $ifconfig_details);
+
         if (!isset($dhcpifconf['enable'])) {
             continue;
-        }
-        if (!empty($config['dhcpd'][$dhcpif]['staticmap'])) {
-            interfaces_staticarp_configure($dhcpif);
         }
 
         if (!empty($dhcpifconf['failover_peerip'])) {
@@ -874,7 +858,6 @@ EOPP;
                     $newddnszone['ddnsdomainalgorithm'] = !empty($poolconf['ddnsdomainalgorithm']) ? $poolconf['ddnsdomainalgorithm'] : "hmac-md5";
                     $ddns_zones[] = $newddnszone;
                 }
-                $pdnscfg .= "    ddns-update-style interim;\n";
             }
 
             if (
@@ -1119,6 +1102,9 @@ EOD;
                     $dhhostname = str_replace(" ", "_", $sm['hostname']);
                     $dhhostname = str_replace(".", "_", $dhhostname);
                     $dhcpdconf .= "  option host-name \"{$dhhostname}\";\n";
+                    if ($need_ddns_updates) {
+                        $dhcpdconf .= "  ddns-hostname \"{$dhhostname}\";\n";
+                    }
                     $dhcpdconf .= "  set hostname-override = config-option host-name;\n";
                 }
                 if (!empty($sm['filename'])) {
@@ -1142,11 +1128,10 @@ EOD;
                     $smdnscfg .= "  option domain-search \"" . join("\",\"", preg_split("/[ ;]+/", $sm['domainsearchlist'])) . "\";\n";
                 }
 
-                if (isset($sm['ddnsupdate'])) {
-                    if (($sm['ddnsdomain'] != '') && ($sm['ddnsdomain'] != $dhcpifconf['ddnsdomain'])) {
-                        $smdnscfg .= "    ddns-domainname \"{$sm['ddnsdomain']}\";\n";
+                if ($need_ddns_updates) {
+                    if (!empty($sm['ddnsdomain']) && ($sm['ddnsdomain'] != $dhcpifconf['ddnsdomain'])) {
+                        $smdnscfg .= "  ddns-domainname \"{$sm['ddnsdomain']}\";\n";
                     }
-                    $smdnscfg .= "    ddns-update-style interim;\n";
                 }
 
                 if (!empty($sm['dnsserver']) && ($sm['dnsserver'][0]) && ($sm['dnsserver'][0] != $dhcpifconf['dnsserver'][0])) {
@@ -1213,7 +1198,7 @@ EOD;
     }
 
     if ($need_ddns_updates) {
-        $dhcpdconf .= "ddns-update-style interim;\n";
+        $dhcpdconf .= "\nddns-update-style interim;\n";
         $dhcpdconf .= "update-static-leases on;\n";
         $dhcpdconf .= dhcpd_zones($ddns_zones);
     }
@@ -1594,6 +1579,9 @@ EOD;
                     $dhhostname = str_replace(" ", "_", $sm['hostname']);
                     $dhhostname = str_replace(".", "_", $dhhostname);
                     $dhcpdv6conf .= "  option host-name {$dhhostname};\n";
+                    if ($need_ddns_updates) {
+                        $dhcpdv6conf .= "  ddns-hostname {$dhhostname};\n";
+                    }
                 }
                 if (!empty($sm['filename'])) {
                     $dhcpdv6conf .= "  filename \"{$sm['filename']}\";\n";
@@ -1620,12 +1608,7 @@ EOD;
             $ddns_zones[] = $newzone;
         }
 
-        if (preg_match('/poes/si', $dhcpv6if)) {
-            /* XXX magic here */
-            $dhcpdv6ifs = array_merge($dhcpdv6ifs, dhcpd_get_pppoes_child_interfaces($dhcpv6if));
-        } else {
-            $dhcpdv6ifs[] = escapeshellcmd(get_real_interface($dhcpv6if, 'inet6'));
-        }
+        $dhcpdv6ifs[] = escapeshellcmd(get_real_interface($dhcpv6if, 'inet6'));
     }
 
     if ($need_ddns_updates) {

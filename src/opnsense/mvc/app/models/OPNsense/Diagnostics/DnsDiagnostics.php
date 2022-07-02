@@ -1,8 +1,8 @@
-#!/usr/local/bin/php
 <?php
 
-/*
- * Copyright (C) 2004 Scott Ullrich <sullrich@gmail.com>
+/**
+ * Copyright (C) 2022 Deciso B.V.
+ *
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,14 +27,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-require_once("config.inc");
-require_once("util.inc");
-require_once("filter.inc");
-require_once("system.inc");
-require_once("interfaces.inc");
+namespace OPNsense\Diagnostics;
 
-exit_on_bootup();
+use OPNsense\Base\BaseModel;
 
-$event_arg = count($argv) >= 1 ? $argv[1] : '';
-
-filter_configure_sync(true, $event_arg != 'skip_alias');
+class DnsDiagnostics extends BaseModel
+{
+}
