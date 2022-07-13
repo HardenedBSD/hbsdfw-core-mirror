@@ -296,13 +296,28 @@ function unlock($cfglckkey = null)
 
 function exit_on_bootup($callback = null, $arguments = [])
 {
-    /* intentionally we exit here to avoid future cleverness WRT bootup handing */
-    if (!flock(fopen('/var/run/booting', 'r+'), LOCK_SH | LOCK_NB)) {
+    $bootflag = '/var/run/booting';
+
+    /* make sure file exists */
+    @touch($bootflag);
+
+    $fp = fopen($bootflag, 'r');
+    if (!$fp) {
+        /* log possible error and adjust exist code */
+        log_error("exit_on_bootup(): error opening $bootflag");
+        exit(1);
+    }
+
+    if (!flock($fp, LOCK_SH | LOCK_NB)) {
         if ($callback) {
             call_user_func_array($callback, $arguments);
         }
+        /* intentionally we exit here to avoid future cleverness WRT bootup handing */
         exit(0);
     }
+
+    /* let the script run if we made sure we are up and running */
+    fclose($fp);
 }
 
 /* validate non-negative numeric string, or equivalent numeric variable */
@@ -495,6 +510,29 @@ function find_smallest_cidr6($ips)
     }
 
     return 128 - $bits;
+}
+
+/* merge IPv6 address prefix of default size 64 with suffix */
+function merge_ipv6_address($prefix, $suffix, $size = 64)
+{
+    $size = 128 - $size;
+
+    $prefix_bits = unpack('N*', inet_pton($prefix));
+    $suffix_bits = unpack('N*', inet_pton($suffix));
+    $mask = [
+        1 => (0xffffffff << max($size - 96, 0)) & 0xffffffff,
+        2 => (0xffffffff << max($size - 64, 0)) & 0xffffffff,
+        3 => (0xffffffff << max($size - 32, 0)) & 0xffffffff,
+        4 => (0xffffffff << $size) & 0xffffffff,
+    ];
+
+    $result = '';
+
+    for ($pos = 1; $pos <= 4; $pos += 1) {
+        $result .=  sprintf('%08x', ($prefix_bits[$pos] & $mask[$pos]) | ($suffix_bits[$pos] & (~$mask[$pos] & 0xffffffff)));
+    }
+
+    return Net_IPv6::compress(implode(':', str_split($result, 4)));
 }
 
 /* returns true if $ipaddr is a valid dotted IPv4 address or an IPv6 */

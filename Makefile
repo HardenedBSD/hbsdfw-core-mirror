@@ -104,13 +104,18 @@ CORE_DEPENDS?=		ca_root_nss \
 			dpinger \
 			easy-rsa \
 			filterlog \
+<<<<<<< HEAD
 			git \
 			ifinfo \
 			iftop \
 			flashrom \
+=======
+>>>>>>> upstream/master
 			flock \
 			flowd \
 			hostapd \
+			ifinfo \
+			iftop \
 			isc-dhcp44-relay \
 			isc-dhcp44-server \
 			jq \
@@ -152,6 +157,7 @@ CORE_DEPENDS?=		ca_root_nss \
 			py${CORE_PYTHON}-requests \
 			py${CORE_PYTHON}-sqlite3 \
 			py${CORE_PYTHON}-ujson \
+			py${CORE_PYTHON}-vici \
 			radvd \
 			rrdtool \
 			samplicator \
@@ -321,7 +327,7 @@ upgrade-check:
 upgrade: upgrade-check clean-pkgdir package
 	@${PKG} delete -fy ${CORE_NAME} || true
 	@${PKG} add ${PKGDIR}/*.pkg
-	@pluginctl webgui
+	@${.CURDIR}/src/sbin/pluginctl webgui
 
 lint-shell:
 	@find ${.CURDIR}/src ${.CURDIR}/Scripts \

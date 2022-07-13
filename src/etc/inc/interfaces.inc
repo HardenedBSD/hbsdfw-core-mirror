@@ -3863,8 +3863,8 @@ function get_interfaces_info($include_unlinked = false)
             $known_interfaces[] = $interfaces[$ifdescr]['if'];
         }
         $interfaces[$ifdescr]['ifv6'] = get_real_interface($ifdescr, 'inet6');
-        if (!empty($interfaces[$ifdescr]['if'])) {
-            $known_interfaces[] = $interfaces[$ifdescr]['if'];
+        if (!empty($interfaces[$ifdescr]['ifv6'])) {
+            $known_interfaces[] = $interfaces[$ifdescr]['ifv6'];
         }
     }
 
@@ -4213,28 +4213,6 @@ function is_ipaddr_configured($ipaddr, $ignore_if = '')
     }
 }
 
-
-function make_ipv6_64_address($prefix, $suffix)
-{
-    $prefix_array = explode(':', Net_IPv6::uncompress($prefix));
-    $suffix_array = explode(':', Net_IPv6::uncompress($suffix));
-
-    /* unconditionally merge right side of /64 */
-    foreach (array(4, 5, 6, 7) as $index) {
-        $prefix_array[$index] = $suffix_array[$index];
-    }
-
-    /* XXX correctly merging the left side of /64 requires user-specified prefix length */
-    foreach (array(0, 1, 2, 3) as $index) {
-        if ((int)$suffix_array[$index] === 0) {
-            continue;
-        }
-        $prefix_array[$index] = $suffix_array[$index];
-    }
-
-    return implode(':', $prefix_array);
-}
-
 function interfaces_addresses($interfaces, $as_subnet = false, $ifconfig_details = null)
 {
     global $config;
@@ -4322,18 +4300,26 @@ function interfaces_addresses($interfaces, $as_subnet = false, $ifconfig_details
                 continue;
             }
 
+            $match = false;
+
             if ($info['family'] == 'inet' && strpos($vip['subnet'], ':') === false) {
-                $info['alias'] = $info['alias'] || $vip['subnet'] == $info['address'];
+                $match = $vip['subnet'] == $info['address'];
             } elseif ($info['family'] == 'inet6' && strpos($vip['subnet'], ':') !== false) {
                 /*
                  * Since we do not know what subnet value was given by user
                  * uncompress/compress to match correctly compressed system
                  * value.
                  */
-                $info['alias'] = $info['alias'] || Net_IPv6::compress(Net_IPv6::uncompress($vip['subnet'])) == $info['address'];
+                $match = Net_IPv6::compress(Net_IPv6::uncompress($vip['subnet'])) == $info['address'];
             }
 
-            if ($info['alias'] && !empty($vip['nobind'])) {
+            if (!$match) {
+                continue;
+            }
+
+            $info['alias'] = true;
+
+            if (!empty($vip['nobind'])) {
                 $info['bind'] = false;
             }
         }
