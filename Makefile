@@ -104,13 +104,10 @@ CORE_DEPENDS?=		ca_root_nss \
 			dpinger \
 			easy-rsa \
 			filterlog \
-<<<<<<< HEAD
 			git \
 			ifinfo \
 			iftop \
 			flashrom \
-=======
->>>>>>> upstream/master
 			flock \
 			flowd \
 			hostapd \
