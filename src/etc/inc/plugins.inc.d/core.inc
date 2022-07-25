@@ -253,8 +253,6 @@ function core_syslog()
     $logfacilities['audit'] = array('facility' => array('audit'));
     $logfacilities['configd'] = array('facility' => array('configd.py'));
     $logfacilities['dhcpd'] = array('facility' => array('dhcpd', 'dhcrelay'));
-    $logfacilities['filter'] = array('facility' => array('filterlog'));
-    $logfacilities['gateways'] = array('facility' => array('dpinger'));
     $logfacilities['lighttpd'] = array('facility' => array('lighttpd'));
     $logfacilities['pkg'] = array('facility' => array('pkg', 'pkg-static'));
     $logfacilities['portalauth'] = array('facility' => array('captiveportal'));
@@ -385,7 +383,7 @@ function core_configure()
 /**
  * user changed event, synchronize attached system groups for requested user
  */
-function core_user_changed_groups($verbose = false, $username)
+function core_user_changed_groups($unused, $username)
 {
     global $config;
     if (is_array($config['system']['user'])) {

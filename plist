@@ -738,10 +738,12 @@
 /usr/local/opnsense/scripts/OPNsense/Monit/setup.sh
 /usr/local/opnsense/scripts/auth/add_user.php
 /usr/local/opnsense/scripts/dhcp/cleanup_leases4.php
+/usr/local/opnsense/scripts/dhcp/dnsmasq_watcher.py
 /usr/local/opnsense/scripts/dhcp/get_leases.py
 /usr/local/opnsense/scripts/dhcp/prefixes.php
+/usr/local/opnsense/scripts/dhcp/prefixes.sh
+/usr/local/opnsense/scripts/dhcp/unbound_watcher.py
 /usr/local/opnsense/scripts/dns/query_dns.py
-/usr/local/opnsense/scripts/dns/unbound_dhcpd.py
 /usr/local/opnsense/scripts/filter/delete_table.py
 /usr/local/opnsense/scripts/filter/download_geoip.py
 /usr/local/opnsense/scripts/filter/find_table_references.py
@@ -760,7 +762,7 @@
 /usr/local/opnsense/scripts/filter/list_states.py
 /usr/local/opnsense/scripts/filter/list_table.py
 /usr/local/opnsense/scripts/filter/list_tables.py
-/usr/local/opnsense/scripts/filter/pfstatistcs.py
+/usr/local/opnsense/scripts/filter/pfstatistics.py
 /usr/local/opnsense/scripts/filter/pftablecount.py
 /usr/local/opnsense/scripts/filter/pftop.py
 /usr/local/opnsense/scripts/filter/read_log.py
@@ -804,6 +806,7 @@
 /usr/local/opnsense/scripts/interfaces/ppp-linkup.sh
 /usr/local/opnsense/scripts/interfaces/ppp-uptime.sh
 /usr/local/opnsense/scripts/interfaces/reconfigure_vlans.php
+/usr/local/opnsense/scripts/interfaces/rtsold_resolvconf.sh
 /usr/local/opnsense/scripts/interfaces/traffic_stats.php
 /usr/local/opnsense/scripts/interfaces/traffic_top.py
 /usr/local/opnsense/scripts/ipsec/connect.py
@@ -837,7 +840,6 @@
 /usr/local/opnsense/scripts/proxy/generate_cert.php
 /usr/local/opnsense/scripts/proxy/lib/__init__.py
 /usr/local/opnsense/scripts/proxy/setup.sh
-/usr/local/opnsense/scripts/remote_backup.php
 /usr/local/opnsense/scripts/routes/del_route.py
 /usr/local/opnsense/scripts/routes/gateway_status.php
 /usr/local/opnsense/scripts/routes/gateways.php
@@ -878,6 +880,7 @@
 /usr/local/opnsense/scripts/syslog/log_archive
 /usr/local/opnsense/scripts/system/list_interrupts.py
 /usr/local/opnsense/scripts/system/nameservers.php
+/usr/local/opnsense/scripts/system/remote_backup.php
 /usr/local/opnsense/scripts/system/rfc5246_cipher_suites.csv
 /usr/local/opnsense/scripts/system/ssl_ciphers.py
 /usr/local/opnsense/scripts/system/sysctl.py
@@ -1015,6 +1018,7 @@
 /usr/local/opnsense/service/templates/OPNsense/Syslog/local/dhcpd.conf
 /usr/local/opnsense/service/templates/OPNsense/Syslog/local/dnsmasq.conf
 /usr/local/opnsense/service/templates/OPNsense/Syslog/local/filter.conf
+/usr/local/opnsense/service/templates/OPNsense/Syslog/local/firewall.conf
 /usr/local/opnsense/service/templates/OPNsense/Syslog/local/gateways.conf
 /usr/local/opnsense/service/templates/OPNsense/Syslog/local/ipsec.conf
 /usr/local/opnsense/service/templates/OPNsense/Syslog/local/lighttpd.conf

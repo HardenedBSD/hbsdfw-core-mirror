@@ -125,12 +125,15 @@ function unbound_generate_config()
         if (!empty($config['unbound']['dns64prefix'])) {
             $dns64prefix = "dns64-prefix: {$config['unbound']['dns64prefix']}";
         }
+    } else {
+        $module_config = '';
     }
     if (isset($config['unbound']['dnssec'])) {
         $module_config .= 'validator iterator';
         $anchor_file = 'auto-trust-anchor-file: /var/unbound/root.key';
     } else {
         $module_config .= 'iterator';
+        $anchor_file = '';
     }
 
     $qnameminstrict = '';
@@ -423,7 +426,7 @@ function unbound_configure_do($verbose = false, $interface = '')
         if (isset($config['unbound']['regdhcpdomain'])) {
             $domain = $config['unbound']['regdhcpdomain'];
         }
-        mwexecf('/usr/local/opnsense/scripts/dns/unbound_dhcpd.py --domain %s', $domain);
+        mwexecf('/usr/local/opnsense/scripts/dhcp/unbound_watcher.py --domain %s', $domain);
     }
 
     if ($verbose) {
@@ -589,7 +592,7 @@ function unbound_add_host_entries($ifconfig_details = null)
                 $unbound_entries .= "local-data-ptr: \"{$host['ipaddrv6']} {$host['hostname']}.{$host['domain']}\"\n";
                 $unbound_entries .= "local-data: \"{$host['hostname']}.{$host['domain']} IN AAAA {$host['ipaddrv6']}\"\n";
             }
-            if (!empty($host['descr']) && $unboundcfg['txtsupport'] == 'on') {
+            if (!empty($host['descr']) && isset($config['unbound']['txtsupport'])) {
                 $unbound_entries .= "local-data: '{$host['hostname']}.{$host['domain']} TXT \"" . addslashes($host['descr']) . "\"'\n";
             }
         }

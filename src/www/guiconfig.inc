@@ -31,6 +31,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+if (file_exists('/var/run/development')) {
+    ini_set('display_errors', 0);
+}
+
 require_once("util.inc");
 require_once("config.inc");
 
@@ -86,7 +90,7 @@ function get_themed_filename($url)
 
 require_once("authgui.inc");
 
-/* Reserved table names to avoid colision */
+/* Reserved table names to avoid collision */
 $reserved_table_names = [
     'bogons',
     'bogonsv6',
@@ -207,18 +211,6 @@ function print_alert_box($msg, $alert = 'warning', $button = '')
 EOFnp;
 }
 
-function print_content_box($msg)
-{
-    echo <<<EOFnp
-<div class="table-responsive">
-  <table class="table table-striped">
-     <tr><td>{$msg}</td></tr>
-  </table>
-</div>
-
-EOFnp;
-}
-
 function print_info_box_apply($msg, $alert = 'info')
 {
     $iface = !empty($_POST['if']) ? $_POST['if'] : (!empty($_GET['if']) ? $_GET['if'] : '');
@@ -295,7 +287,7 @@ function get_std_save_message($plain = false)
         }
         return sprintf(
             gettext("The changes have been applied successfully, ".
-                    "remember to update your backup server in %sSystem: High availablity: status%s"),
+                    "remember to update your backup server in %sSystem: High availability: status%s"),
             $lnk_start, $lnk_end
         );
     } else {

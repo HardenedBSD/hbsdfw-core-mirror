@@ -549,6 +549,7 @@ abstract class BaseModel
      *
      * @param bool $validateFullModel by default we only validate the fields we have changed
      * @param bool $disable_validation skip validation, be careful to use this!
+     * @return bool persisted changes
      * @throws Validation\Exception validation errors
      */
     public function serializeToConfig($validateFullModel = false, $disable_validation = false)
@@ -584,6 +585,9 @@ abstract class BaseModel
         }
         if ($this->internal_mountpoint != ':memory:') {
             $this->internalSerializeToConfig();
+            return true;
+        } else {
+            return false;
         }
     }
 
@@ -641,7 +645,7 @@ abstract class BaseModel
         if ($this->internal_mountpoint == ':memory:') {
             return false;
         } elseif (version_compare($this->internal_current_model_version, $this->internal_model_version, '<')) {
-            $upgradePerfomed = false;
+            $upgradePerformed = false;
             $migObjects = array();
             $logger = new Logger(
                 'messages',
@@ -683,7 +687,7 @@ abstract class BaseModel
                         try {
                             $migobj->run($this);
                             $migObjects[] = $migobj;
-                            $upgradePerfomed = true;
+                            $upgradePerformed = true;
                         } catch (Exception $e) {
                             $logger->error("failed migrating from version " .
                                 $this->internal_current_model_version .
@@ -697,7 +701,7 @@ abstract class BaseModel
             }
             // serialize to config after last migration step, keep the config data static as long as not all
             // migrations have completed.
-            if ($upgradePerfomed) {
+            if ($upgradePerformed) {
                 try {
                     $this->serializeToConfig();
                     foreach ($migObjects as $migobj) {

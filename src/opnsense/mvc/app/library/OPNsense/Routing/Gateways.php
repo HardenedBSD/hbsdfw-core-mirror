@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Copyright (C) 2019 Deciso B.V.
+ * Copyright (C) 2019-2022 Deciso B.V.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -246,6 +246,14 @@ class Gateways
                         }
                         $gwkey = $this->newKey($thisconf['priority'], !empty($thisconf['defaultgw']));
                         $this->cached_gateways[$gwkey] = $thisconf;
+                    /* XXX duplicated above condition to support :slaac in the interim */
+                    } elseif (file_exists("/tmp/{$realif}:slaac_router{$fsuffix}")) {
+                        $thisconf['gateway'] = trim(@file_get_contents("/tmp/{$realif}:slaac_router{$fsuffix}"));
+                        if (empty($thisconf['monitor_disable']) && empty($thisconf['monitor'])) {
+                            $thisconf['monitor'] = $thisconf['gateway'];
+                        }
+                        $gwkey = $this->newKey($thisconf['priority'], !empty($thisconf['defaultgw']));
+                        $this->cached_gateways[$gwkey] = $thisconf;
                     } elseif (!empty($ifcfg['gateway_interface']) || substr($realif, 0, 5) == 'ovpnc') {
                         // XXX: ditch ovpnc in a major upgrade in the future, supersede with interface setting
                         //      gateway_interface
@@ -290,7 +298,7 @@ class Gateways
 
     /**
      * determine default gateway, exclude gateways in skip list
-     * since getGateways() is correcly ordered, we just need to find the first active, not down gateway
+     * since getGateways() is correctly ordered, we just need to find the first active, not down gateway
      * @param array|null $skip list of gateways to ignore
      * @param string $ipproto inet/inet6 type
      * @return string type name
@@ -489,7 +497,7 @@ class Gateways
                                 }
                             }
                         }
-                        // exit when tier has (a) usuable gateway(s)
+                        // exit when tier has (a) usable gateway(s)
                         if (!empty($result[(string)$gw_group->name])) {
                             break;
                         }

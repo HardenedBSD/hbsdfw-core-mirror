@@ -560,6 +560,11 @@ function dhcpd_dhcp4_configure($verbose = false)
     killbypid('/var/dhcpd/var/run/dhcpd.pid', 'TERM', true);
 
     if (!dhcpd_dhcpv4_enabled()) {
+        /*
+         * XXX If there is no enabled server interfaces_staticarp_configure()
+         * is not executed as documented.  This likely does not matter, but
+         * since it came up as odd in testing make a note here for the future.
+         */
         return;
     }
 
@@ -1318,6 +1323,8 @@ function dhcpd_dhcp6_configure($verbose = false, $blacklist = array())
                 /* with enough room we can add dhcp6 prefix delegation */
                 $pdlen = calculate_ipv6_delegation_length($config['interfaces'][$ifname]['track6-interface']);
                 if ($pdlen > 2) {
+                    /* XXX calculation is probably out of whack, please fix */
+
                     $pdlenmax = $pdlen;
                     $pdlenhalf = $pdlenmax - 1;
                     $pdlenmin = 64 - ceil($pdlenhalf / 4);
@@ -1345,10 +1352,25 @@ function dhcpd_dhcp6_configure($verbose = false, $blacklist = array())
                 }
 
                 if (!empty($dhcpdv6cfg[$ifname]['prefixrange']['from']) && !empty($dhcpdv6cfg[$ifname]['prefixrange']['to'])) {
-                    $pdval = intval($dhcpdv6cfg[$ifname]['prefixrange']['prefixlength']);
+                    /* XXX $pdlen is never validated against prefixlenght setting, but must be smaller or equal */
+                    $pdlen = 64 - calculate_ipv6_delegation_length($config['interfaces'][$ifname]['track6-interface']);
 
-                    $dhcpdv6cfg[$ifname]['prefixrange']['from'] = merge_ipv6_address($ifcfgipv6, $dhcpdv6cfg[$ifname]['prefixrange']['from'], $pdval);
-                    $dhcpdv6cfg[$ifname]['prefixrange']['to'] = merge_ipv6_address($ifcfgipv6, $dhcpdv6cfg[$ifname]['prefixrange']['to'], $pdval);
+                    $range_from = merge_ipv6_address($dhcpdv6cfg[$ifname]['prefixrange']['from'], '::');
+                    if ($range_from == '::') {
+                        log_error("Warning! '{$dhcpdv6cfg[$ifname]['prefixrange']['from']}' is not a valid prefix range value");
+                        /* XXX previously it was suggested to use suffix but it was actually infix so shift 64 bits if possible */
+                        $range_from = $dhcpdv6cfg[$ifname]['prefixrange']['from'] . ':0:0:0:0';
+                    }
+
+                    $range_to = merge_ipv6_address($dhcpdv6cfg[$ifname]['prefixrange']['to'], '::');
+                    if ($range_to == '::') {
+                        log_error("Warning! '{$dhcpdv6cfg[$ifname]['prefixrange']['to']}' is not a valid prefix range value");
+                        /* XXX previously it was suggested to use suffix but it was actually infix so shift 64 bits if possible */
+                        $range_to = $dhcpdv6cfg[$ifname]['prefixrange']['to'] . ':0:0:0:0';
+                    }
+
+                    $dhcpdv6cfg[$ifname]['prefixrange']['from'] = merge_ipv6_address($ifcfgipv6, $range_from, $pdlen);
+                    $dhcpdv6cfg[$ifname]['prefixrange']['to'] = merge_ipv6_address($ifcfgipv6, $range_to, $pdlen);
                 }
             }
         }
@@ -1580,10 +1602,7 @@ EOD;
     /* fire up dhcpd in a chroot */
     if (count($dhcpdv6ifs) > 0) {
         mwexec('/usr/local/sbin/dhcpd -6 -user dhcpd -group dhcpd -chroot /var/dhcpd -cf /etc/dhcpdv6.conf -pf /var/run/dhcpdv6.pid ' . join(' ', $dhcpdv6ifs));
-        mwexecf('/usr/local/sbin/dhcpleases6 -c %s -l %s', array(
-            '/usr/local/sbin/configctl dhcpd update prefixes',
-            '/var/dhcpd/var/db/dhcpd6.leases',
-        ));
+        mwexecf('/usr/sbin/daemon -f -p %s %s', ['/var/run/dhcpleases6.pid', '/usr/local/opnsense/scripts/dhcp/prefixes.sh']);
     }
 
     if ($verbose) {
@@ -1863,7 +1882,7 @@ function dhcpd_staticmap($domain_fallback = 'not.found', $ifconfig_details = nul
                 }
 
                 // XXX: dhcpdv6 domain entries have been superseded by domainsearchlist,
-                //      for backward compatibilty support both here.
+                //      for backward compatibility support both here.
                 if ($inet == 6 && !empty($host['domainsearchlist'])) {
                     $domain = $host['domainsearchlist'];
                 } elseif (!empty($host['domain'])) {
