@@ -214,6 +214,8 @@ fi
 
 echo "done."
 
+ln -s /usr/local/bin/python3.9 /usr/local/bin/python3
+
 # Regenerate groups and users for packages
 /usr/local/etc/rc.subr.d/recover pkg > /dev/null 2> /dev/null
 
