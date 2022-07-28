@@ -28,11 +28,7 @@ all:
 
 .include "Mk/defaults.mk"
 
-<<<<<<< HEAD
 CORE_ABI?=	1.0
-=======
-CORE_ABI?=	22.7
->>>>>>> upstream/master
 CORE_MESSAGE?=	Carry on my wayward son
 CORE_NICKNAME?=	A sense of freedom
 CORE_NAME?=	hbsdfw
