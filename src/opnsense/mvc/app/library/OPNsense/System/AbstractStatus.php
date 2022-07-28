@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Copyright (C) 2016 Deciso B.V.
+ * Copyright (C) 2022 Deciso B.V.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,37 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-use OPNsense\Phalcon\Di\Di;
-use Phalcon\Di\FactoryDefault;
+namespace OPNsense\System;
 
-/**
- * Read the configuration
- */
+abstract class AbstractStatus
+{
+    const STATUS_ERROR = -1;
+    const STATUS_WARNING = 0;
+    const STATUS_NOTICE = 1;
+    const STATUS_OK = 2;
 
-$config = include __DIR__ . "/app/config/config.php";
+    protected $internalMessage = 'No problems were detected.';
+    protected $internalLogLocation = '';
+    protected $internalStatus = self::STATUS_OK;
+    protected $statusStrings = ['notice', 'warning', 'error'];
 
-/**
- * Read auto-loader
- */
-include __DIR__ . "/../app/config/loader.php";
+    public function getStatus()
+    {
+        return $this->internalStatus;
+    }
 
+    public function getMessage($verbose = false)
+    {
+        return $this->internalMessage;
+    }
 
-$di = new FactoryDefault();
-Di::reset();
+    public function getLogLocation()
+    {
+        return $this->internalLogLocation;
+    }
 
-$di->set('config', $config);
-
-Di::setDefault($di);
+    public function dismissStatus()
+    {
+        /* To be overridden by the child status classes */
+    }
+}

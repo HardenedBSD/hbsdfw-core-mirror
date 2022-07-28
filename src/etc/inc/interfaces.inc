@@ -800,7 +800,7 @@ function interface_vip_bring_down($vip)
     }
 }
 
-function interface_bring_down($interface = "wan", $ifacecfg = false)
+function interface_bring_down($interface = 'wan', $ifacecfg = false)
 {
     global $config;
 
@@ -812,7 +812,7 @@ function interface_bring_down($interface = "wan", $ifacecfg = false)
         $realif = get_real_interface($interface);
         $realifv6 = get_real_interface($interface, "inet6");
         $ifcfg = $config['interfaces'][$interface];
-        $ppps = isset($config['ppps']['ppp']) ? $config['ppps']['ppp'] : array();
+        $ppps = isset($config['ppps']['ppp']) ? $config['ppps']['ppp'] : [];
     } else {
         $ifcfg = $ifacecfg['ifcfg'];
         $ppps = $ifacecfg['ppps'];
@@ -849,7 +849,7 @@ function interface_bring_down($interface = "wan", $ifacecfg = false)
     $track6 = link_interface_to_track6($interface);
     if (count($track6)) {
         /* bring down radvd and dhcp6 on these interfaces */
-        plugins_configure('dhcp', false, array('inet6', $track6));
+        plugins_configure('dhcp', false, ['inet6', $track6]);
     }
 
     switch ($ifcfg['ipaddrv6']) {
@@ -890,51 +890,17 @@ function interface_bring_down($interface = "wan", $ifacecfg = false)
             break;
     }
 
-    $pfctlflush = array();
-    $arpflush = array();
-
-    if (does_interface_exist($realif)) {
-        $arpflush[$realif] = 1;
-
-        if (!empty(trim(@file_get_contents("/tmp/{$realif}_router")))) {
-            $pfctlflush[$realif] = 1;
-        }
-
-        list ($ip4) = interfaces_primary_address($interface);
-        if (!empty($ip4)) {
-            mwexecf('/sbin/ifconfig %s delete %s', array($realif, $ip4));
-        }
+    list ($ip4) = interfaces_primary_address($interface);
+    if (!empty($ip4)) {
+        mwexecf('/sbin/ifconfig %s delete %s', [$realif, $ip4]);
     }
 
-    if (does_interface_exist($realifv6)) {
-        /*
-         * XXX So we flush ARP on IPv6 here!  But why?
-         *
-         * Either we want to flush NDP or both ARP
-         * and NDP, but then the same goes for IPv4.
-         */
-        $arpflush[$realifv6] = 1;
-
-        if (!empty(trim(@file_get_contents("/tmp/{$realifv6}_routerv6")))) {
-            $pfctlflush[$realifv6] = 1;
-        }
-
-        list ($ip6) = interfaces_primary_address6($interface);
-        if (!empty($ip6)) {
-            mwexecf('/sbin/ifconfig %s inet6 %s delete', array($realifv6, $ip6));
-        }
+    list ($ip6) = interfaces_primary_address6($interface);
+    if (!empty($ip6)) {
+        mwexecf('/sbin/ifconfig %s inet6 %s delete', [$realifv6, $ip6]);
     }
 
-    foreach (array_keys($arpflush) as $dev) {
-        mwexecf('/usr/sbin/arp -d -i %s -a', $dev);
-    }
-
-    foreach (array_keys($pfctlflush) as $dev) {
-        log_error("Clearing states for stale {$interface} route on {$dev}");
-        mwexecf('/sbin/pfctl -i %s -Fs', $dev);
-    }
-
-    /* clear stale state files associated with this interface */
+    /* clear stale state associated with this interface */
     mwexecf('/usr/local/sbin/ifctl -4c -i %s', $realif);
     mwexecf('/usr/local/sbin/ifctl -6c -i %s', $realifv6);
 }
@@ -2585,8 +2551,6 @@ function interface_6rd_configure($interface, $wancfg, $update = false)
     mwexecf('/sbin/ifconfig %s stfv4net %s/%s', array($stfiface, $ip4address, $wancfg['prefix-6rd-v4plen']));
     mwexecf('/usr/local/sbin/ifctl -i %s -6rd -a %s', [$stfiface, $rd6brgw]);
 
-    file_put_contents("/tmp/{$stfiface}_defaultgwv6", "{$rd6brgw}\n"); /* XXX omit in the future */
-
     $gateways = new \OPNsense\Routing\Gateways(legacy_interfaces_details());
     $ip4gateway = $gateways->getInterfaceGateway($interface, "inet");
     if (is_ipaddrv4($ip4gateway)) {
@@ -2674,8 +2638,6 @@ function interface_6to4_configure($interface, $wancfg, $update = false)
 
     mwexecf('/sbin/ifconfig %s inet6 %s prefixlen 16', array($stfiface, $stflan));
     mwexecf('/usr/local/sbin/ifctl -i %s -6rd -a %s', [$stfiface, $stfbrgw]);
-
-    file_put_contents("/tmp/{$stfiface}_defaultgwv6", "{$stfbrgw}\n"); /* XXX omit in the future */
 
     $gateways = new \OPNsense\Routing\Gateways(legacy_interfaces_details());
     $ip4gateway = $gateways->getInterfaceGateway($interface, "inet");
@@ -2861,8 +2823,6 @@ if [ -n "\${2}" ]; then
     # Note that the router file can be written by ppp-linkup.sh or
     # this script so do not clear the file as it may already exist.
     /usr/local/sbin/ifctl -i \${1} -6rd -a \${2}
-    # XXX omit in the future
-    echo \${2} > /tmp/\${1}_defaultgwv6
 fi
 if [ -f /var/run/dhcp6c.pid ]; then
     if ! /bin/pkill -0 -F /var/run/dhcp6c.pid; then

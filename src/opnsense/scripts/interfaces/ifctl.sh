@@ -105,14 +105,30 @@ if [ "${DO_COMMAND}" = "-c" ]; then
 		exit 1
 	fi
 
-	# iterate through possible files
+	HAVE_ROUTE=
+
+	# iterate through possible files for cleanup
 	for MD in nameserver prefix router searchdomain; do
 		for IFC in ${IF} ${IF}:slaac; do
 			FILE="/tmp/${IFC}_${MD}${EX}"
+			if [ ! -f ${FILE} ]; then
+				continue
+			fi
+			if [ "${MD}" = "router" ]; then
+				HAVE_ROUTE=1
+			fi
 			flush_routes
 			rm -f ${FILE}
 		done
 	done
+
+        # legacy behaviour originating from interface_bring_down()
+	/usr/sbin/arp -d -i ${IF} -a
+
+	# XXX maybe we do not have to kill states at all
+	if [ -n "${HAVE_ROUTE}" ]; then
+		/sbin/pfctl -i ${IF} -Fs
+	fi
 
 	exit 0
 elif [ "${DO_COMMAND}" = "-l" ]; then
@@ -120,20 +136,53 @@ elif [ "${DO_COMMAND}" = "-l" ]; then
 		EX="*"
 		IF="*"
 	fi
-	find -s /tmp -name "${IF}_${MD}${EX}"
+
+	MATCHES=$(find -s /tmp -name "${IF}_${MD}${EX}" -or -name "${IF}:*_${MD}${EX}")
+	RESULTS=
+
+	for MATCH in ${MATCHES}; do
+		FILE=${MATCH##*/}
+		IF=${FILE%%:*}
+		IF=${IF%%_*}
+		MD=${FILE#*_}
+
+		# suffix :slaac sorts before plain interface
+		# so we can export the resulting file name first
+		# and overwrite later
+		if [ -z "$(eval echo \${${IF}_${MD}})" ]; then
+			RESULTS="${RESULTS} ${IF}_${MD}"
+		fi
+		eval export ${IF}_${MD}='${MATCH}'
+	done
+
+	for RESULT in ${RESULTS}; do
+		eval echo \${${RESULT}}
+	done
+
 	exit 0
 fi
 
 FILE="/tmp/${IF:-*}_${MD}${EX}"
 
 if [ -z "${IF}" ]; then
+	RESULTS=
+
 	# list all interfaces that have the requested file
 	for FOUND in $(find -s /tmp -name "${FILE#/tmp/}"); do
 		FOUND=${FOUND#/tmp/}
-		echo ${FOUND%%_*}
+		FOUND=${FOUND%%_*}
+		FOUND=${FOUND%:*}
+		if [ -z "$(eval echo \${${FOUND}_found})" ]; then
+			RESULTS="${RESULTS} ${FOUND}_found"
+		fi
+		eval export ${FOUND}_found='${FOUND}'
 	done
 
-	# wait for further user input using "-i"
+	# only list possible interfaces for user to choose from
+	for RESULT in ${RESULTS}; do
+		eval echo \${${RESULT}}
+	done
+
 	exit 0
 fi
 

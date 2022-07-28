@@ -28,7 +28,11 @@ all:
 
 .include "Mk/defaults.mk"
 
+<<<<<<< HEAD
 CORE_ABI?=	1.0
+=======
+CORE_ABI?=	22.7
+>>>>>>> upstream/master
 CORE_MESSAGE?=	Carry on my wayward son
 CORE_NICKNAME?=	A sense of freedom
 CORE_NAME?=	hbsdfw
@@ -92,9 +96,6 @@ CORE_COPYRIGHT_YEARS?=	2014-2022
 
 CORE_DEPENDS_amd64?=	beep
 
-# XXX transition helpers for PHP 8 migration
-CORE_DEPENDS_PHP74=	php74-json php74-openssl
-
 CORE_DEPENDS?=		ca_root_nss \
 			choparp \
 			cpustats \
@@ -145,7 +146,6 @@ CORE_DEPENDS?=		ca_root_nss \
 			php${CORE_PHP}-sqlite3 \
 			php${CORE_PHP}-xml \
 			php${CORE_PHP}-zlib \
-			${CORE_DEPENDS_PHP${CORE_PHP}} \
 			pkg \
 			py${CORE_PYTHON}-Jinja2 \
 			py${CORE_PYTHON}-dnspython \
