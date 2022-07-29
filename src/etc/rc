@@ -215,6 +215,7 @@ fi
 echo "done."
 
 ln -sf /usr/local/bin/python3.9 /usr/local/bin/python3
+touch /usr/local/opnsense/service/templates/OPNsense/IDS/custom.yaml
 
 # Regenerate groups and users for packages
 /usr/local/etc/rc.subr.d/recover pkg > /dev/null 2> /dev/null
