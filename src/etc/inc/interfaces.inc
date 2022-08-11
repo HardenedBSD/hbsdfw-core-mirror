@@ -591,7 +591,7 @@ function _interfaces_gre_configure($gre)
     }
     if (is_ipaddrv6($gre['tunnel-local-addr']) || is_ipaddrv6($gre['tunnel-remote-addr'])) {
         /* check if destination is local to source and if not we need the traditional point-to-point setup */
-        if (ip_in_subnet($gre['tunnel-remote-addr'], "{$gre['tunnel-local-addr']}/{$gre['tunnel-remote-net']}")) {
+        if ($gre['tunnel-remote-net'] != '128' && ip_in_subnet($gre['tunnel-remote-addr'], "{$gre['tunnel-local-addr']}/{$gre['tunnel-remote-net']}")) {
             mwexecf('/sbin/ifconfig %s inet6 %s prefixlen %s', [
                 $gre['greif'],
                 $gre['tunnel-local-addr'],
@@ -680,12 +680,20 @@ function _interfaces_gif_configure($gif)
         mwexecf('/sbin/ifconfig %s tunnel %s %s', array($gif['gifif'], $realifip, $gif['remote-addr']));
     }
     if (is_ipaddrv6($gif['tunnel-local-addr']) || is_ipaddrv6($gif['tunnel-remote-addr'])) {
-        mwexecf('/sbin/ifconfig %s inet6 %s %s prefixlen %s', [
-            $gif['gifif'],
-            $gif['tunnel-local-addr'],
-            $gif['tunnel-remote-addr'],
-            '128',
-        ]);
+        /* check if destination is local to source and if not we need the traditional point-to-point setup */
+        if ($gif['tunnel-remote-net'] != '128' && ip_in_subnet($gif['tunnel-remote-addr'], "{$gif['tunnel-local-addr']}/{$gif['tunnel-remote-net']}")) {
+            mwexecf('/sbin/ifconfig %s inet6 %s prefixlen %s', [
+                $gif['gifif'],
+                $gif['tunnel-local-addr'],
+                $gif['tunnel-remote-net'],
+            ]);
+        } else {
+            mwexecf('/sbin/ifconfig %s inet6 %s %s prefixlen 128', [
+                $gif['gifif'],
+                $gif['tunnel-local-addr'],
+                $gif['tunnel-remote-addr'],
+            ]);
+        }
     } else {
         mwexecf('/sbin/ifconfig %s inet6 ifdisabled', [$gif['gifif']]);
         mwexecf('/sbin/ifconfig %s %s %s netmask %s', [
@@ -2800,12 +2808,11 @@ INFOREQ|REQUEST)
     /usr/local/sbin/configctl -d interface newipv6 {$wanif}
     ;;
 EXIT|RELEASE)
-    /usr/bin/logger -t dhcp6c "dhcp6c \$REASON on {$wanif} - running dns reload"
+    /usr/bin/logger -t dhcp6c "dhcp6c \$REASON on {$wanif} - running newipv6"
     /usr/local/sbin/ifctl -i ${wanif} -6nd
     /usr/local/sbin/ifctl -i ${wanif} -6sd
     /usr/local/sbin/ifctl -i ${wanif} -6pd
-    rm -f /tmp/${wanif}_cacheipv6 # XXX experiment
-    /usr/local/sbin/configctl -d dns reload
+    /usr/local/sbin/configctl -d interface newipv6 {$wanif}
     ;;
 *)
     ;;
