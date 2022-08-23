@@ -269,7 +269,7 @@ function legacy_interfaces_details($intf = null)
             foreach (explode(',', $capabilities) as $capability) {
                 $result[$current_interface]["capabilities"][] = strtolower(trim($capability));
             }
-        } elseif (strpos(trim($line), 'options=') !== false) {
+        } elseif (strpos(trim($line), 'options=') === 0) {
             // parse options
             $options = substr($line, strpos($line, '<') + 1, -1);
             foreach (explode(',', $options) as $option) {
@@ -448,7 +448,12 @@ function configure_interface_hardware($ifs, $intf_details = null)
 
     $hwsettings = $config['system'];
 
-    if (strstr($ifs, 'vlan') || strstr($ifs, 'qinq') || strpos($ifs, '/') === 0) {
+    /* XXX this needs fixing, lots of devices are not capable */
+    if (
+        strstr($ifs, 'vlan') || strpos($ifs, 'qinq') === 0 ||
+        strpos($ifs, 'lo') === 0 || strpos($ifs, 'vxlan') === 0 ||
+        strpos($ifs, 'ipsec') === 0 || strpos($ifs, '/') === 0
+    ) {
         /* skip checksumming  */
         return;
     }
@@ -506,13 +511,11 @@ function configure_interface_hardware($ifs, $intf_details = null)
         if (!isset($hwsettings['disablevlanhwfilter']) || $hwsettings['disablevlanhwfilter'] == 1) {
             // probe already selected options
             $selected_opts = [];
-            if (!empty($intf_details['options'])) {
-                foreach ($intf_details['options'] as $opt) {
-                    if ($opt == 'vlan_hwtagging') {
-                        $selected_opts[] = 'vlanhwtag';
-                    } else {
-                        $selected_opts[] = str_replace('_', '', $opt);
-                    }
+            foreach ($intf_details['options'] as $opt) {
+                if ($opt == 'vlan_hwtagging') {
+                    $selected_opts[] = 'vlanhwtag';
+                } else {
+                    $selected_opts[] = str_replace('_', '', $opt);
                 }
             }
             // set one tag at a time to avoid driver issues
