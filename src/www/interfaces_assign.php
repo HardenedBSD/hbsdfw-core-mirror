@@ -34,6 +34,15 @@ require_once("rrd.inc");
 require_once("system.inc");
 require_once("interfaces.inc");
 
+function match_wireless_interface($int)
+{
+    global $wireless_devices;
+
+    /* XXX check for wireless clones? */
+
+    return preg_match('/^(' . implode('|', $wireless_devices) . ')/', $int);
+}
+
 function link_interface_to_group($int)
 {
     global $config;
@@ -150,6 +159,7 @@ function list_interfaces()
     return $interfaces;
 }
 
+$wireless_devices = legacy_interface_listget('wlan');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $input_errors = [];
@@ -192,7 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $config['interfaces'][$newifname]['ipaddr'] = $interfaces[$_POST['if_add']]['type'];
             }
             if (match_wireless_interface($_POST['if_add'])) {
-                $config['interfaces'][$newifname]['wireless'] = array();
+                $config['interfaces'][$newifname]['wireless'] = [];
                 interface_sync_wireless_clones($config['interfaces'][$newifname], false);
             }
 
@@ -339,7 +349,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   }
 
                   if ($reloadif) {
-                      if (match_wireless_interface($ifport)) {
+                      if (isset($config['interfaces'][$ifname]['wireless'])) {
                           interface_sync_wireless_clones($config['interfaces'][$ifname], false);
                       }
                       /* Reload all for the interface. */

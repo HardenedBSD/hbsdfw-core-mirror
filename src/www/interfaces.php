@@ -257,13 +257,13 @@ function test_wireless_capability($if, $cap)
     return false;
 }
 
-function get_wireless_modes($interface) {
-    /* return wireless modes and channels */
-    $wireless_modes = array();
+/* return wireless modes and channels */
+function get_wireless_modes($interface)
+{
+    $wireless_modes = [];
 
     $cloned_interface = get_real_interface($interface);
-
-    if ($cloned_interface && is_interface_wireless($cloned_interface)) {
+    if ($cloned_interface) {
         $chan_list = "/sbin/ifconfig {$cloned_interface} list chan";
         $stack_list = "/usr/bin/awk -F\"Channel \" '{ gsub(/\\*/, \" \"); print \$2 \"\\\n\" \$3 }'";
         $format_list = "/usr/bin/awk '{print \$5 \" \" \$6 \",\" \$1}'";
@@ -298,15 +298,17 @@ function get_wireless_modes($interface) {
             }
         }
     }
-    return($wireless_modes);
+
+    return $wireless_modes;
 }
 
 /* return channel numbers, frequency, max txpower, and max regulation txpower */
-function get_wireless_channel_info($interface) {
-    $wireless_channels = array();
+function get_wireless_channel_info($interface)
+{
+    $wireless_channels = [];
 
     $cloned_interface = get_real_interface($interface);
-    if ($cloned_interface && is_interface_wireless($cloned_interface)) {
+    if ($cloned_interface) {
         $chan_list = "/sbin/ifconfig {$cloned_interface} list txpower";
         $stack_list = "/usr/bin/awk -F\"Channel \" '{ gsub(/\\*/, \" \"); print \$2 \"\\\n\" \$3 }'";
         $format_list = "/usr/bin/awk '{print \$1 \",\" \$3 \" \" \$4 \",\" \$5 \",\" \$7}'";
@@ -321,7 +323,8 @@ function get_wireless_channel_info($interface) {
             }
         }
     }
-    return($wireless_channels);
+
+    return $wireless_channels;
 }
 
 $ifdescrs = legacy_config_get_interfaces(['virtual' => false]);
@@ -502,10 +505,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         /* Sync first to be sure it displays the actual settings that will be used */
         interface_sync_wireless_clones($a_interfaces[$if], false);
         /* Get wireless modes */
-        $wlanif = get_real_interface($if);
-        if (!does_interface_exist($wlanif)) {
-            interface_wireless_clone($wlanif, $a_interfaces[$if]);
-        }
+        interface_wireless_clone(get_real_interface($a_interfaces[$if]['if']), $a_interfaces[$if]);
         $wlanbaseif = interface_get_wireless_base($a_interfaces[$if]['if']);
         $std_wl_copy_fieldnames = array(
           'standard', 'mode','protmode', 'ssid', 'channel', 'txpower', 'diversity', 'txantenna', 'rxantenna',
@@ -933,11 +933,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 $a_interfaces[$if]['wireless']['mode'] = 'bss';
             }
             if ($a_interfaces[$if]['wireless']['mode'] != $pconfig['mode']) {
-                if (does_interface_exist(interface_get_wireless_clone($wlanbaseif))) {
-                    $clone_count = 1;
-                } else {
-                    $clone_count = 0;
-                }
+                $wlanbaseif = interface_get_wireless_base($a_interfaces[$if]['if']);
+                $clone_count = does_interface_exist("{$wlanbaseif}_wlan0") ? 1 : 0;
                 if (!empty($config['wireless']['clone'])) {
                     foreach ($config['wireless']['clone'] as $clone) {
                         if ($clone['if'] == $wlanbaseif) {
