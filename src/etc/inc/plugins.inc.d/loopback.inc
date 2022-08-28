@@ -52,17 +52,15 @@ function loopback_interfaces()
 
 function loopback_devices()
 {
-    $assign = [];
     $names = [];
 
     foreach (iterator_to_array((new \OPNsense\Interfaces\Loopback())->loopback->iterateItems()) as $loopback) {
-        $assign["lo{$loopback->deviceId}"] = [
+        $names["lo{$loopback->deviceId}"] = [
             'descr' => sprintf('lo%s (%s)', $loopback->deviceId, $loopback->description),
             'ifdescr' => sprintf('%s', $loopback->description),
-            'section' => 'loopback'
+            'name' => "lo{$loopback->deviceId}",
+            'section' => 'loopback',
         ];
-
-        $names[] = "lo{$loopback->deviceId}";
     }
 
     return [[
@@ -71,7 +69,6 @@ function loopback_devices()
         'pattern' => '^lo',
         'volatile' => true,
         'type' => 'loopback',
-        'assign' => $assign,
         'names' => $names,
     ]];
 }
