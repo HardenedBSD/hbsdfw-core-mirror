@@ -141,7 +141,6 @@ function core_devices()
         $bridge_names[$dev['bridgeif']] = [
             'descr' => sprintf('%s (%s)', $dev['bridgeif'], $dev['descr']),
             'ifdescr' => sprintf('%s', $dev['descr']),
-            'section' => 'bridges.bridged',
             'name' => $dev['bridgeif'],
         ];
     }
@@ -160,7 +159,6 @@ function core_devices()
         $gif_names[$dev['gifif']] = [
             'descr' => sprintf('%s %s (%s)', $dev['gifif'], $dev['remote-addr'], $dev['descr']),
             'ifdescr' => sprintf('%s', $dev['descr']),
-            'section' => 'gifs.gif',
             'name' => $dev['gifif'],
         ];
     }
@@ -180,7 +178,6 @@ function core_devices()
         $gre_names[$dev['greif']] = [
             'descr' => sprintf('%s %s (%s)', $dev['greif'], $dev['remote-addr'], $dev['descr']),
             'ifdescr' => sprintf('%s', $dev['descr']),
-            'section' => 'gres.gre',
             'name' => $dev['greif'],
         ];
     }
@@ -194,13 +191,65 @@ function core_devices()
         'type' => 'gre',
     ];
 
+    $lagg_names = [];
+
+    foreach (config_read_array('laggs', 'lagg') as $dev) {
+        $lagg_names[$dev['laggif']] = [
+            'descr' => sprintf('%s (%s)', $dev['laggif'], $dev['descr']),
+            'ifdescr' => sprintf('%s', $dev['descr']),
+            'exclude' => explode(',', $dev['members']),
+            'name' => $dev['laggif'],
+        ];
+    }
+
+    $devices[] = [
+        'names' => $lagg_names,
+        'pattern' => '^lagg',
+        'volatile' => true,
+        'type' => 'lagg',
+    ];
+
+    $ppp_names = [];
+
+    foreach (config_read_array('ppps', 'ppp') as $dev) {
+        $ppp_names[$dev['if']] = [
+            'descr' => sprintf('%s (%s) - %s %s', $dev['if'], $dev['ports'], $dev['descr'], $dev['username']),
+            'ifdescr' => sprintf('%s', $dev['descr']),
+            'ipaddr' => $dev['type'],
+            'name' => $dev['if'],
+        ];
+    }
+
+    $devices[] = [
+        'pattern' => '^cua|^l2tp|^ppp|^pptp', /* XXX ^cua likely doesn't match since it's a /dev node */
+        'names' => $ppp_names,
+        'volatile' => true,
+        'type' => 'ppp',
+    ];
+
+    $vlan_names = [];
+
+    foreach (config_read_array('vlans', 'vlan') as $dev) {
+        $vlan_names[$dev['vlanif']] = [
+            'descr' => sprintf(gettext('%s %s (Parent: %s, Tag: %s)'), $dev['vlanif'], $dev['descr'], $dev['if'], $dev['tag']),
+            'ifdescr' => sprintf('%s', $dev['descr']),
+            'name' => $dev['vlanif'],
+        ];
+    }
+
+    $devices[] = [
+        'pattern' => '_vlan|^vlan|^qinq',
+        'names' => $vlan_names,
+        'volatile' => true,
+        'type' => 'vlan',
+    ];
+
     $wlan_names = [];
 
     foreach (config_read_array('wireless', 'clone') as $dev) {
         $wlan_names[$dev['cloneif']] = [
             'descr' => sprintf('%s (%s)', $dev['cloneif'], $dev['descr']),
             'ifdescr' => sprintf('%s', $dev['descr']),
-            'section' => 'wireless.clone',
             'name' => $dev['cloneif'],
         ];
     }
@@ -211,7 +260,6 @@ function core_devices()
             $wlan_names[$conf['if']] = [
                 'descr' => sprintf('%s (%s)', $conf['if'], gettext('wireless clone')),
                 'ifdescr' => gettext('wireless clone'),
-                'section' => 'wireless.clone',
                 'name' => $conf['if'],
             ];
 
@@ -224,34 +272,21 @@ function core_devices()
             $wlan_names[$realif] = [
                 'descr' => sprintf('%s (%s)', $realif, gettext('wireless clone')),
                 'ifdescr' => gettext('wireless clone'),
-                'section' => 'wireless.clone',
                 'name' => $realif,
             ];
         }
     }
 
     $devices[] = [
-        'function' => null, /* XXX needs to handle implied clones as well */
+        'function' => 'interfaces_wlan_clone',
         'names' => $wlan_names,
         'pattern' => '_wlan',
         'volatile' => true,
         'type' => 'wlan',
     ];
 
-    # XXX is a plugin collection...
-    $devices[] = array('pattern' => '^cua', 'volatile' => true);
-    $devices[] = array('pattern' => '^l2tp', 'volatile' => true);
-    $devices[] = array('pattern' => '^lagg', 'volatile' => true);
-    $devices[] = array('pattern' => '^ocvpn', 'volatile' => true);
-    $devices[] = array('pattern' => '^ppp', 'volatile' => true);
-    $devices[] = array('pattern' => '^pptp', 'volatile' => true);
-    $devices[] = array('pattern' => '^tinc', 'volatile' => true);
-    $devices[] = array('pattern' => '^tun|^tap', 'volatile' => true);
-    $devices[] = array('pattern' => '^ue', 'volatile' => true);
-    $devices[] = array('pattern' => '^wg', 'volatile' => true);
-    $devices[] = array('pattern' => '^zt', 'volatile' => true);
-    $devices[] = array('pattern' => '_stf', 'volatile' => true);
-    $devices[] = array('pattern' => '_vlan|^vlan|^qinq', 'volatile' => true);
+    /* historic handling of tunnel devices and other unstable things */
+    $devices[] = ['pattern' => '_stf|^tap|^tun|^ue', 'volatile' => true];
 
     return $devices;
 }

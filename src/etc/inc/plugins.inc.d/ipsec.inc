@@ -218,7 +218,6 @@ function ipsec_devices()
         $names[$device] = [
             'descr' => sprintf('%s (%s)', $device, $details['descr']),
             'ifdescr' => sprintf('%s', $details['descr']),
-            'section' => 'ipsec',
             'name' => $device,
         ];
     }
@@ -232,7 +231,7 @@ function ipsec_devices()
         'type' => 'ipsec',
     ];
 
-    $devices[] = ['pattern' => '^enc|^ipsec', 'volatile' => true];
+    $devices[] = ['pattern' => '^enc', 'volatile' => true];
 
     return $devices;
 }
