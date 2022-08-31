@@ -314,7 +314,7 @@ upgrade-check:
 upgrade: upgrade-check clean-pkgdir package
 	@${PKG} delete -fy ${CORE_NAME} || true
 	@${PKG} add ${PKGDIR}/*.pkg
-	@${.CURDIR}/src/sbin/pluginctl webgui
+	@${.CURDIR}/src/sbin/pluginctl -c webgui
 
 lint-shell:
 	@find ${.CURDIR}/src ${.CURDIR}/Scripts \
