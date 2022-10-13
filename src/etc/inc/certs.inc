@@ -27,6 +27,36 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+<<<<<<< HEAD
+=======
+function phpseclib_autoload($namespace, $dir)
+{
+    $split = '\\';
+    $ns = trim($namespace, DIRECTORY_SEPARATOR . $split);
+
+    return spl_autoload_register(
+        function ($class) use ($ns, $dir, $split) {
+            $prefix = $ns . $split;
+            $base_dir = $dir . DIRECTORY_SEPARATOR;
+            $len = strlen($prefix);
+            if (strncmp($prefix, $class, $len)) {
+                return;
+            }
+
+            $relative_class = substr($class, $len);
+
+            $file = $base_dir .
+                str_replace($split, DIRECTORY_SEPARATOR, $relative_class) .
+                '.php';
+
+            if (file_exists($file)) {
+                require_once $file;
+            }
+        }
+    );
+}
+
+>>>>>>> upstream/master
 function &lookup_ca($refid)
 {
     global $config;
@@ -566,6 +596,106 @@ function cert_in_use($certref)
       is_openvpn_client_cert($certref) ||
       is_ipsec_cert($certref));
 }
+<<<<<<< HEAD
+=======
+
+/* Compare two certificates to see if they match. */
+function cert_compare($cert1, $cert2)
+{
+    /* Ensure two certs are identical by first checking that their issuers match, then
+      subjects, then serial numbers, and finally the moduli. Anything less strict
+      could accidentally count two similar, but different, certificates as
+      being identical. */
+    $c1 = base64_decode($cert1['crt']);
+    $c2 = base64_decode($cert2['crt']);
+    if (
+        (cert_get_issuer($c1, false) == cert_get_issuer($c2, false))
+        && (cert_get_subject($c1, false) == cert_get_subject($c2, false))
+        && (cert_get_serial($c1, false) == cert_get_serial($c2, false))
+        && (cert_get_modulus($c1, false) == cert_get_modulus($c2, false))
+    ) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+function is_cert_revoked($cert, $crlref = "")
+{
+    global $config;
+    if (!isset($config['crl']) || !is_array($config['crl'])) {
+        return false;
+    }
+
+    if (!empty($crlref)) {
+        $crl = lookup_crl($crlref);
+        if (!isset($crl['cert']) || !is_array($crl['cert'])) {
+            return false;
+        }
+        foreach ($crl['cert'] as $rcert) {
+            if (cert_compare($rcert, $cert)) {
+                return true;
+            }
+        }
+    } else {
+        foreach ($config['crl'] as $crl) {
+            if (!is_array($crl['cert'])) {
+                continue;
+            }
+            foreach ($crl['cert'] as $rcert) {
+                if (cert_compare($rcert, $cert)) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+function is_openvpn_server_crl($crlref)
+{
+    global $config;
+    if (!isset($config['openvpn']['openvpn-server']) || !is_array($config['openvpn']['openvpn-server'])) {
+        return;
+    }
+    foreach ($config['openvpn']['openvpn-server'] as $ovpns) {
+        if (!empty($ovpns['crlref']) && ($ovpns['crlref'] == $crlref)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function is_crl_internal($crl)
+{
+    return $crl["crlmethod"] ?? '' == "internal";
+}
+
+function cert_get_cn($crt, $isref = false)
+{
+    /* If this is a certref, not an actual cert, look up the cert first */
+    if ($isref) {
+        $cert = lookup_cert($crt);
+        /* If it's not a valid cert, bail. */
+        if (!(is_array($cert) && !empty($cert['crt']))) {
+            return "";
+        }
+        $cert = $cert['crt'];
+    } else {
+        $cert = $crt;
+    }
+    $sub = cert_get_subject_array($cert);
+    if (is_array($sub)) {
+        foreach ($sub as $s) {
+            if (strtoupper($s['a']) == "CN") {
+                return $s['v'];
+            }
+        }
+    }
+    return "";
+}
+
+>>>>>>> upstream/master
 /**
  * Create a temporary config file, to help with calls that require properties that can only be set via the config file.
  *
