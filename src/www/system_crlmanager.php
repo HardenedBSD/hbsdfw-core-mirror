@@ -29,37 +29,6 @@
 
 require_once('guiconfig.inc');
 
-<<<<<<< HEAD
-function phpseclib_autoload($namespace, $dir)
-{
-    $split = '\\';
-    $ns = trim($namespace, DIRECTORY_SEPARATOR . $split);
-
-    return spl_autoload_register(
-        function ($class) use ($ns, $dir, $split) {
-            $prefix = $ns . $split;
-            $base_dir = $dir . DIRECTORY_SEPARATOR;
-            $len = strlen($prefix);
-            if (strncmp($prefix, $class, $len)) {
-                return;
-            }
-
-            $relative_class = substr($class, $len);
-
-            $file = $base_dir .
-                str_replace($split, DIRECTORY_SEPARATOR, $relative_class) .
-                '.php';
-
-            if (file_exists($file)) {
-                require_once $file;
-            }
-        }
-    );
-}
-
-/* Autoload phpseclib3 and it's dependencies */
-=======
->>>>>>> upstream/master
 phpseclib_autoload('ParagonIE\ConstantTime', '/usr/local/share/phpseclib/paragonie');
 phpseclib_autoload('phpseclib3', '/usr/local/share/phpseclib');
 
@@ -241,7 +210,6 @@ function crl_update(&$crl)
     return true;
 }
 
-<<<<<<< HEAD
 /* Compare two certificates to see if they match. */
 function cert_compare($cert1, $cert2)
 {
@@ -340,8 +308,6 @@ function cert_get_cn($crt, $isref = false)
 }
 
 
-=======
->>>>>>> upstream/master
 // prepare config types
 $a_crl = &config_read_array('crl');
 $a_cert = &config_read_array('cert');

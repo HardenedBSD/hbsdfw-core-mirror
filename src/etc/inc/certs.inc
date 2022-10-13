@@ -27,8 +27,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-<<<<<<< HEAD
-=======
 function phpseclib_autoload($namespace, $dir)
 {
     $split = '\\';
@@ -56,7 +54,6 @@ function phpseclib_autoload($namespace, $dir)
     );
 }
 
->>>>>>> upstream/master
 function &lookup_ca($refid)
 {
     global $config;
@@ -596,8 +593,6 @@ function cert_in_use($certref)
       is_openvpn_client_cert($certref) ||
       is_ipsec_cert($certref));
 }
-<<<<<<< HEAD
-=======
 
 /* Compare two certificates to see if they match. */
 function cert_compare($cert1, $cert2)
@@ -695,7 +690,6 @@ function cert_get_cn($crt, $isref = false)
     return "";
 }
 
->>>>>>> upstream/master
 /**
  * Create a temporary config file, to help with calls that require properties that can only be set via the config file.
  *
