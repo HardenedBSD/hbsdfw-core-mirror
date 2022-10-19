@@ -107,7 +107,9 @@ function unbound_generate_config()
         return;
     }
 
-    $dirs = array('/dev', '/etc', '/lib', '/run', '/usr', '/usr/local/sbin', '/var/db', '/var/run');
+    $pythonv = readlink('/usr/local/bin/python3');
+
+    $dirs = ['/dev', '/etc', '/lib', '/run', '/usr', '/usr/local/sbin', '/var/db', '/var/run', "/usr/local/lib/{$pythonv}"];
 
     foreach ($dirs as $dir) {
         mwexecf('/bin/mkdir -p %s', "/var/unbound{$dir}");
@@ -115,6 +117,13 @@ function unbound_generate_config()
 
     if (mwexecf('/sbin/mount -uw %s', '/var/unbound/dev', true)) {
         mwexecf('/sbin/mount -t devfs devfs %s', '/var/unbound/dev');
+    }
+
+    $python_dir = "/usr/local/lib/{$pythonv}";
+    $chroot_python_dir = "/var/unbound{$python_dir}";
+
+    if (mwexec("/sbin/mount | grep {$chroot_python_dir}", true)) {
+        mwexec("/sbin/mount -r -t nullfs {$python_dir} {$chroot_python_dir}");
     }
 
     $optimization = unbound_optimization();
@@ -134,42 +143,20 @@ function unbound_generate_config()
         $module_config .= 'dns64 ';
     }
     if (isset($config['unbound']['dnssec'])) {
-        $module_config .= 'validator iterator';
+        $module_config .= 'python validator iterator';
         $anchor_file = 'auto-trust-anchor-file: /var/unbound/root.key';
     } else {
-        $module_config .= 'iterator';
+        $module_config .= 'python iterator';
     }
 
+    $private_addr = "";
     if (!isset($config['system']['webgui']['nodnsrebindcheck'])) {
-        $private_addr = <<<EOF
-# For DNS Rebinding prevention
-#
-# All these addresses are either private or should not be routable in the global IPv4 or IPv6 internet.
-#
-# IPv4 Addresses
-#
-private-address: 0.0.0.0/8       # Broadcast address
-private-address: 10.0.0.0/8
-private-address: 100.64.0.0/10
-private-address: 127.0.0.0/8     # Loopback Localhost
-private-address: 169.254.0.0/16
-private-address: 172.16.0.0/12
-private-address: 192.0.2.0/24    # Documentation network TEST-NET
-private-address: 192.168.0.0/16
-private-address: 198.18.0.0/15   # Used for testing inter-network communications
-private-address: 198.51.100.0/24 # Documentation network TEST-NET-2
-private-address: 203.0.113.0/24  # Documentation network TEST-NET-3
-private-address: 233.252.0.0/24  # Documentation network MCAST-TEST-NET
-#
-# IPv6 Addresses
-#
-private-address: ::1/128         # Loopback Localhost
-private-address: 2001:db8::/32   # Documentation network IPv6
-private-address: fc00::/8        # Unique local address (ULA) part of "fc00::/7", not defined yet
-private-address: fd00::/8        # Unique local address (ULA) part of "fc00::/7", "/48" prefix group
-private-address: fe80::/10       # Link-local address (LLA)
-
-EOF;
+        $advanced = config_read_array('OPNsense', 'unboundplus', 'advanced');
+        if (!empty($advanced) && !empty($advanced['privateaddress'])) {
+            foreach (explode(',', $advanced['privateaddress']) as $address) {
+                $private_addr .= "private-address: {$address}\n";
+            }
+        }
     }
 
     $bindints = '';
@@ -305,7 +292,7 @@ module-config: "{$module_config}"
 {$bindints}
 {$outgoingints}
 
-# DNS Rebinding
+# Private networks for DNS Rebinding prevention (when enabled)
 {$private_addr}
 
 # Private domains (DNS Rebinding)
@@ -324,6 +311,9 @@ include: /var/unbound/host_entries.conf
 include: /var/unbound/etc/*.conf
 
 {$forward_conf}
+
+python:
+python-script: dnsbl_module.py
 
 remote-control:
     control-enable: yes
