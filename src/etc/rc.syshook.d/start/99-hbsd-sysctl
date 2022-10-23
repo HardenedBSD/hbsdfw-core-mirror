@@ -1,0 +1,3 @@
+#!/bin/sh
+
+sysctl hardening.pax.kmod_load_disable=1
