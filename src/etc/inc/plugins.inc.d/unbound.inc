@@ -112,6 +112,10 @@ function unbound_generate_config()
 {
     global $config;
 
+    if (!unbound_enabled()) {
+        return;
+    }
+
     $pythonv = readlink('/usr/local/bin/python3');
     $python_dir = "/usr/local/lib/{$pythonv}";
     $chroot_python_dir = "/var/unbound{$python_dir}";
@@ -122,8 +126,13 @@ function unbound_generate_config()
         mwexecf('/bin/mkdir -p %s', "/var/unbound{$dir}");
     }
 
-    mwexecf('/sbin/mount -t devfs devfs %s', '/var/unbound/dev');
-    mwexecf('/sbin/mount -r -t nullfs %s %s', [$python_dir, $chroot_python_dir]);
+    if (mwexecf('/sbin/mount -uw %s', '/var/unbound/dev', true)) {
+        mwexecf('/sbin/mount -t devfs devfs %s', '/var/unbound/dev');
+    }
+
+    if (mwexecf('/sbin/mount | awk \'{ print $3 }\' | grep -qx %s', [$chroot_python_dir], true)) {
+        mwexecf('/sbin/mount -r -t nullfs %s %s', [$python_dir, $chroot_python_dir]);
+    }
 
     $optimization = unbound_optimization();
 
@@ -348,14 +357,13 @@ function unbound_configure_do($verbose = false, $unused = '')
     }
 
     unbound_service_stop();
+    unbound_generate_config();
 
     if (!unbound_enabled()) {
         return;
     }
 
     service_log('Starting Unbound DNS...', $verbose);
-
-    unbound_generate_config();
 
     if (isset($config['unbound']['regdhcp'])) {
         $domain = $config['system']['domain'];
