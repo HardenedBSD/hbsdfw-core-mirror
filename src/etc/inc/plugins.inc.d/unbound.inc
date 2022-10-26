@@ -103,18 +103,8 @@ function unbound_optimization()
 function unbound_service_stop()
 {
     mwexec('/usr/local/bin/flock -E 0 -o /tmp/unbound_start.lock true');
-
-    if (empty($config['unbound']['cacheflush'])) {
-        if (isvalidpid('/var/run/unbound.pid')) {
-            configd_run('unbound cache dump');
-        }
-    } else {
-        unbound_cache_flush();
-    }
-
     killbypid('/var/run/unbound_dhcpd.pid', 'TERM', true);
     killbypid('/var/run/unbound.pid', 'TERM', true);
-
     mwexecf('/sbin/umount %s', '/var/unbound/dev', true);
     mwexecf('/sbin/umount %s', '/var/unbound/usr/local/lib/' . readlink('/usr/local/bin/python3'), true);
 }
@@ -348,6 +338,15 @@ function unbound_cache_flush()
 function unbound_configure_do($verbose = false, $unused = '')
 {
     global $config;
+    $domain = '';
+
+    if (empty($config['unbound']['cacheflush'])) {
+        if (isvalidpid('/var/run/unbound.pid')) {
+            configd_run('unbound cache dump');
+        }
+    } else {
+        unbound_cache_flush();
+    }
 
     unbound_service_stop();
 
@@ -358,8 +357,6 @@ function unbound_configure_do($verbose = false, $unused = '')
     service_log('Starting Unbound DNS...', $verbose);
 
     unbound_generate_config();
-
-    $domain = '';
 
     if (isset($config['unbound']['regdhcp'])) {
         $domain = $config['system']['domain'];
