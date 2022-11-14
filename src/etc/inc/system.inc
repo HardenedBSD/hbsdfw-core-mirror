@@ -150,7 +150,7 @@ function system_sysctl_get()
         if (!empty($defaults[$key])) {
             $value = $defaults[$key]['default'];
         } else {
-            log_error('warning: ignoring missing default tunable request: ' . $key);
+            log_msg('warning: ignoring missing default tunable request: ' . $key, LOG_WARNING);
             unset($sysctls[$key]);
         }
     }
@@ -158,6 +158,22 @@ function system_sysctl_get()
     ksort($sysctls);
 
     return $sysctls;
+}
+
+function system_resolvconf_host_routes()
+{
+    $routes = [];
+
+    foreach (get_nameservers(null, true) as $dnsserver) {
+        if (isset($routes[$dnsserver['host']])) {
+            log_msg("Duplicated DNS route ignored for {$dnsserver['host']} on {$dnsserver['interface']}", LOG_WARNING);
+            continue;
+        }
+
+        $routes[$dnsserver['host']] = $dnsserver['gateway'];
+    }
+
+    return $routes;
 }
 
 function system_resolvconf_generate($verbose = false)
@@ -191,15 +207,10 @@ function system_resolvconf_generate($verbose = false)
     }
 
     $search = array_merge($search, get_searchdomains());
+    $routes = system_resolvconf_host_routes();
 
-    foreach (get_nameservers(null, true) as $dnsserver) {
-        if (isset($routes[$dnsserver['host']])) {
-            log_error("Duplicated DNS route ignored for {$dnsserver['host']} on {$dnsserver['interface']}");
-            continue;
-        }
-
-        $resolvconf .= "nameserver {$dnsserver['host']}\n";
-        $routes[$dnsserver['host']] = $dnsserver['gateway'];
+    foreach (array_keys($routes) as $host) {
+        $resolvconf .= "nameserver {$host}\n";
     }
 
     if (count($search)) {
@@ -487,7 +498,7 @@ function system_hostname_configure($verbose = false)
     service_log("{$hostname}\n", $verbose);
 }
 
-function system_host_route($host, $gateway, $delete = true, $add = true)
+function system_host_route($host, $gateway)
 {
     if (is_ipaddrv4($gateway)) {
         $family = 'inet';
@@ -497,12 +508,10 @@ function system_host_route($host, $gateway, $delete = true, $add = true)
         return;
     }
 
-    if ($delete) {
-        mwexecf('/sbin/route delete -host -%s %s', array($family, $host), true);
-    }
+    mwexecf('/sbin/route delete -host -%s %s', [$family, $host], true);
 
-    if ($add) {
-        mwexecf('/sbin/route add -host -%s %s %s', array($family, $host, $gateway));
+    if ($host != $gateway) {
+        mwexecf('/sbin/route add -host -%s %s %s', [$family, $host, $gateway]);
     }
 }
 
@@ -519,7 +528,7 @@ function system_default_route($gateway, $family, $interface, $far = false)
             }
             break;
         default:
-            log_error("ROUTING: unknown address family '{$family}'");
+            log_msg("ROUTING: unknown address family '{$family}'", LOG_ERR);
             return;
     }
 
@@ -529,7 +538,7 @@ function system_default_route($gateway, $family, $interface, $far = false)
             if (ip_in_subnet($gateway, $network)) {
                 $realif = null;
             } else {
-                log_error("ROUTING: treating '{$gateway}' as far gateway for '{$network}'");
+                log_msg("ROUTING: treating '{$gateway}' as far gateway for '{$network}'");
             }
         }
     } else {
@@ -540,7 +549,7 @@ function system_default_route($gateway, $family, $interface, $far = false)
     $tmpcmd = "/sbin/route -n get -{$family} default 2>/dev/null | /usr/bin/awk '/gateway:/ {print $2}'";
     $current = trim(exec($tmpcmd), " \n");
     if ($current == $gateway) {
-        log_error("ROUTING: keeping current default gateway '{$gateway}'");
+        log_msg("ROUTING: keeping current default gateway '{$gateway}'", LOG_INFO);
         return;
     }
 
@@ -557,58 +566,35 @@ function system_routing_configure($verbose = false, $interface = null, $monitor 
     service_log('Setting up routes...', $verbose);
 
     if (!empty($interface)) {
-        log_error("ROUTING: entering configure using '${interface}'");
+        log_msg("ROUTING: entering configure using '${interface}'", LOG_DEBUG);
     } else {
-        log_error("ROUTING: entering configure using defaults");
+        log_msg("ROUTING: entering configure using defaults", LOG_DEBUG);
     }
 
-    $gateways = new \OPNsense\Routing\Gateways(legacy_interfaces_details());
+    $ifdetails = legacy_interfaces_details();
+    $gateways = new \OPNsense\Routing\Gateways($ifdetails);
 
     foreach (['inet', 'inet6'] as $ipproto) {
         /* determine default gateway without considering monitor status */
-        $gateway = $gateways->getDefaultGW(array(), $ipproto);
+        $gateway = $gateways->getDefaultGW([], $ipproto);
         $logproto = $ipproto == 'inet' ? 'IPv4' : 'IPv6';
         if ($gateway != null) {
-            log_error("ROUTING: {$logproto} default gateway set to {$gateway['interface']}");
+            log_msg("ROUTING: {$logproto} default gateway set to {$gateway['interface']}", LOG_INFO);
             if ((empty($interface) || $interface == $gateway['interface']) && !empty($gateway['gateway'])) {
-                log_error("ROUTING: setting {$logproto} default route to {$gateway['gateway']}");
+                log_msg("ROUTING: setting {$logproto} default route to {$gateway['gateway']}");
                 system_default_route($gateway['gateway'], $ipproto, $gateway['interface'], isset($gateway['fargw']));
             } else {
-                log_error("ROUTING: skipping {$logproto} default route");
+                log_msg("ROUTING: skipping {$logproto} default route");
             }
         }
     }
 
-    system_staticroutes_configure($interface);
-
-    service_log("done.\n", $verbose);
-
-    if ($monitor) {
-        $reloads = [];
-
-        if (!empty($interface)) {
-            foreach ($gateways->gatewaysIndexedByName(true) as $name => $gateway) {
-                if ($interface == $gateway['interface']) {
-                    $reloads[] = $name;
-                }
-            }
-        }
-
-        foreach (count($reloads) ? $reloads : [null] as $reload) {
-            plugins_configure('monitor', $verbose, [$reload]);
-        }
-    }
-}
-
-function system_staticroutes_configure($interface = null)
-{
     $static_routes = get_staticroutes(false);
     if (count($static_routes)) {
-        $ifdetails = legacy_interfaces_details();
-        $gateways_arr = (new \OPNsense\Routing\Gateways($ifdetails))->gatewaysIndexedByName(false, true);
+        $gateways_arr = $gateways->gatewaysIndexedByName(false, true);
         foreach ($static_routes as $rtent) {
             if (empty($gateways_arr[$rtent['gateway']])) {
-                log_error(sprintf('Static Routes: Gateway IP could not be found for %s', $rtent['network']));
+                log_msg(sprintf('Static Routes: Gateway IP could not be found for %s', $rtent['network']), LOG_WARNING);
                 continue;
             }
             $gateway = $gateways_arr[$rtent['gateway']];
@@ -617,7 +603,7 @@ function system_staticroutes_configure($interface = null)
             }
 
             if (!is_subnet($rtent['network'])) {
-                log_error(sprintf('Cannot add static route to: %s', $rtent['network']));
+                log_msg(sprintf('Cannot add static route to: %s', $rtent['network']), LOG_ERR);
                 continue;
             }
             $interfacegw = $gateway['if'];
@@ -645,8 +631,8 @@ function system_staticroutes_configure($interface = null)
                 if (is_ipaddr($gatewayip)) {
                     mwexec("/sbin/route delete {$cmd}", true);
                     if ($fargw) {
-                        mwexecf('/sbin/route delete %s %s -interface %s ', array($inet, $gatewayip, $interfacegw), true);
-                        mwexecf('/sbin/route add %s %s -interface %s', array($inet, $gatewayip, $interfacegw), true);
+                        mwexecf('/sbin/route delete %s %s -interface %s ', [$inet, $gatewayip, $interfacegw], true);
+                        mwexecf('/sbin/route add %s %s -interface %s', [$inet, $gatewayip, $interfacegw], true);
                     } elseif (is_linklocal($gatewayip) && strpos($gatewayip, '%') === false) {
                         $gatewayip .= "%{$interfacegw}";
                     }
@@ -656,6 +642,24 @@ function system_staticroutes_configure($interface = null)
                     mwexec("/sbin/route add" . $cmd . "-interface " . escapeshellarg($interfacegw), true);
                 }
             }
+        }
+    }
+
+    service_log("done.\n", $verbose);
+
+    if ($monitor) {
+        $reloads = [];
+
+        if (!empty($interface)) {
+            foreach ($gateways->gatewaysIndexedByName(true) as $name => $gateway) {
+                if ($interface == $gateway['interface']) {
+                    $reloads[] = $name;
+                }
+            }
+        }
+
+        foreach (count($reloads) ? $reloads : [null] as $reload) {
+            plugins_configure('monitor', $verbose, [$reload]);
         }
     }
 }
@@ -849,7 +853,7 @@ function system_kernel_configure($verbose = false)
      *
      * Keep in sync with /usr/local/etc/erc.loader.d/20-modules
      */
-    $mods = array(
+    $mods = [
         'carp',
         'if_bridge',
         'if_enc',
@@ -862,17 +866,17 @@ function system_kernel_configure($verbose = false)
         'pf',
         'pflog',
         'pfsync',
-    );
+    ];
 
     if (!empty($config['system']['crypto_hardware'])) {
         foreach (explode(',', $config['system']['crypto_hardware']) as $crypto) {
-            log_error(sprintf('Loading %s cryptographic accelerator module.', $crypto));
+            log_msg(sprintf('Loading %s cryptographic accelerator module.', $crypto), LOG_INFO);
             $mods[] = $crypto;
         }
     }
 
     if (!empty($config['system']['thermal_hardware'])) {
-        log_error(sprintf('Loading %s thermal monitor module.', $config['system']['thermal_hardware']));
+        log_msg(sprintf('Loading %s thermal monitor module.', $config['system']['thermal_hardware']), LOG_INFO);
         $mods[] = $config['system']['thermal_hardware'];
     }
 

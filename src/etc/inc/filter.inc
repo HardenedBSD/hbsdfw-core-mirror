@@ -259,7 +259,7 @@ function filter_configure_sync($verbose = false, $load_aliases = true)
         $down_gateways = return_down_gateways();
         foreach (array("inet", "inet6") as $ipprotocol) {
             if (!empty($down_gateways)) {
-                log_error(sprintf("Ignore down %s gateways : %s", $ipprotocol, implode(",", $down_gateways)));
+                log_msg(sprintf("Ignore down %s gateways : %s", $ipprotocol, implode(",", $down_gateways)), LOG_DEBUG);
             }
             $default_gw = $fw->getGateways()->getDefaultGW($down_gateways, $ipprotocol);
             if ($default_gw !== null && !empty($default_gw['gateway'])) {
@@ -296,6 +296,7 @@ function filter_configure_sync($verbose = false, $load_aliases = true)
 
         unlock($filterlck);
         closelog();
+        reopenlog();
 
         service_log("done.\n", $verbose);
 
@@ -361,6 +362,11 @@ function filter_configure_sync($verbose = false, $load_aliases = true)
         }
         $limitrules .= "set syncookies {$config['system']['syncookies']} {$arange}\n";
     }
+    /* if pf already generated a hostid, reuse it */
+    $current_hostid = get_current_hostid();
+    if (!empty($current_hostid)) {
+        $limitrules .= "set hostid {$current_hostid}\n";
+    }
 
     $rules = "{$limitrules}\n";
     $rules .= "{$aliases} \n";
@@ -389,6 +395,7 @@ function filter_configure_sync($verbose = false, $load_aliases = true)
 
         unlock($filterlck);
         closelog();
+        reopenlog();
 
         service_log("failed.\n", $verbose);
 
@@ -430,6 +437,7 @@ function filter_configure_sync($verbose = false, $load_aliases = true)
 
         unlock($filterlck);
         closelog();
+        reopenlog();
 
         service_log("failed.\n", $verbose);
 
@@ -463,6 +471,7 @@ function filter_configure_sync($verbose = false, $load_aliases = true)
 
     unlock($filterlck);
     closelog();
+    reopenlog();
 
     service_log("done.\n", $verbose);
 }
@@ -808,6 +817,17 @@ function default_state_size()
     $max_states = (int) ($physmem / 10) * 1000;
 
     return $max_states;
+}
+
+function get_current_hostid()
+{
+    exec('/sbin/pfctl -si -v 2>/dev/null', $output);
+    foreach ($output as $line) {
+        if (strpos($line, 'Hostid:') !== false) {
+            return preg_split("/(\s+)/", $line)[1];
+        }
+    }
+    return null;
 }
 
 function get_protocols()
