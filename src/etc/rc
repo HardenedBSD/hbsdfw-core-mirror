@@ -214,7 +214,7 @@ fi
 
 echo "done."
 
-ln -sf /usr/local/bin/python3.9 /usr/local/bin/python3
+ln -sf python3.9 /usr/local/bin/python3
 touch /usr/local/opnsense/service/templates/OPNsense/IDS/custom.yaml
 
 # Regenerate groups and users for packages
